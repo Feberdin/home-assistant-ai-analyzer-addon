@@ -40,7 +40,7 @@ def test_chat_assistant_answers_locally_when_ai_is_disabled() -> None:
         },
     }
 
-    answer = answer_chat_question(settings, "Erstelle mir YAML fuer eine Automation", reports)
+    answer = answer_chat_question(settings, "Erstelle mir YAML fuer eine Automation", reports, language="de")
 
     assert "Lokale Analyse-Antwort" in answer
     assert "Gescannte YAML-Dateien: 12" in answer

@@ -2,6 +2,13 @@
 
 # Changelog
 
+## 0.3.3 - 2026-04-03
+
+- Added automatic German/English dashboard localization based on the browser language used inside Home Assistant ingress
+- Reworked the dashboard to explain findings, reports, and settings in more detail instead of showing mostly raw counters
+- Fixed the assistant and status API URLs to use ingress-safe relative paths so browser fetch requests do not point to unreachable internal hosts
+- Added German add-on option translations for the Home Assistant configuration screen
+
 ## 0.3.2 - 2026-04-03
 
 - Fixed ingress routing by replacing hard-coded root URLs in the dashboard with request-aware route generation

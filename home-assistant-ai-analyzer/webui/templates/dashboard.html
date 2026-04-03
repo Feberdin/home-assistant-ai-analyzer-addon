@@ -1,15 +1,15 @@
 <!DOCTYPE html>
 <!--
-Purpose: Render the add-on dashboard for scans, summaries, report access, chat assistance, and geolocation review.
-Input/Output: Input is the Jinja context from analysis_engine.app; output is the ingress HTML page.
-Invariants: The page must stay readable without JavaScript and ingress-safe links must never use hard-coded absolute root paths.
-Debugging: If values are missing, inspect the Jinja context keys passed in by the dashboard route before changing the client-side code.
+Purpose: Render the localized add-on dashboard for scans, summaries, reports, assistant chat, and geolocation review.
+Input/Output: Input is the Jinja context from analysis_engine.app; output is the ingress HTML page shown inside Home Assistant.
+Invariants: The page must stay readable without JavaScript and all browser requests must use ingress-safe paths supplied by the backend.
+Debugging: If wording or values look wrong, inspect the localized UI context and report-derived card data before changing the template.
 -->
-<html lang="en">
+<html lang="{{ language }}">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Home Assistant AI Analyzer</title>
+    <title>{{ ui.app_title }}</title>
     <style>
       :root {
         --bg: #f3efe6;
@@ -115,11 +115,6 @@ Debugging: If values are missing, inspect the Jinja context keys passed in by th
         cursor: wait;
       }
 
-      .button.secondary {
-        color: var(--ink);
-        background: rgba(21, 94, 117, 0.08);
-      }
-
       .grid {
         display: grid;
         gap: 18px;
@@ -133,21 +128,9 @@ Debugging: If values are missing, inspect the Jinja context keys passed in by th
         margin-bottom: 6px;
       }
 
-      .reports {
-        display: grid;
-        gap: 12px;
-      }
-
-      .report-link {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        text-decoration: none;
-        color: var(--ink);
-        padding: 14px 16px;
-        border-radius: 16px;
-        border: 1px solid var(--line);
-        background: rgba(255, 255, 255, 0.55);
+      .metric-detail {
+        color: var(--muted);
+        font-size: 0.92rem;
       }
 
       .cols {
@@ -161,6 +144,56 @@ Debugging: If values are missing, inspect the Jinja context keys passed in by th
         display: grid;
         gap: 18px;
         grid-template-columns: 1.3fr 0.9fr;
+      }
+
+      .reports {
+        display: grid;
+        gap: 12px;
+      }
+
+      .report-link {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+        text-decoration: none;
+        color: var(--ink);
+        padding: 14px 16px;
+        border-radius: 16px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.55);
+      }
+
+      .report-link strong {
+        display: block;
+        margin-bottom: 4px;
+      }
+
+      .report-meta {
+        font-size: 0.92rem;
+      }
+
+      .finding-list {
+        display: grid;
+        gap: 12px;
+      }
+
+      .finding-card {
+        border-radius: 18px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.58);
+        padding: 16px;
+      }
+
+      .finding-value {
+        font-size: 1.8rem;
+        font-weight: 800;
+        color: var(--ink);
+        margin-bottom: 6px;
+      }
+
+      .finding-examples {
+        margin-top: 10px;
+        font-size: 0.92rem;
       }
 
       .assistant-form {
@@ -214,9 +247,16 @@ Debugging: If values are missing, inspect the Jinja context keys passed in by th
         cursor: pointer;
       }
 
-      .muted-grid {
+      .guidance-list {
         display: grid;
-        gap: 10px;
+        gap: 12px;
+      }
+
+      .guidance-item {
+        border-radius: 16px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.58);
+        padding: 14px 16px;
       }
 
       .map-shell {
@@ -352,216 +392,183 @@ Debugging: If values are missing, inspect the Jinja context keys passed in by th
     <main class="shell">
       <section class="hero">
         <article class="card">
-          <h2>Analyzer</h2>
-          <h1>Home Assistant AI Analyzer</h1>
-          <p>
-            Scan the mounted Home Assistant configuration, compare it with runtime data,
-            and generate explainable findings before changing anything live.
-          </p>
+          <h2>{{ ui.analyzer_label }}</h2>
+          <h1>{{ ui.app_title }}</h1>
+          <p>{{ ui.app_intro }}</p>
           <form action="{{ scan_url }}" method="post">
-            <button class="button" type="submit">Run Scan</button>
+            <button class="button" type="submit">{{ ui.run_scan_label }}</button>
           </form>
         </article>
 
         <aside class="card">
-          <h2>Current Status</h2>
-          <div class="status {{ state.status }}">
-            <span>{{ state.status|upper }}</span>
+          <h2>{{ ui.current_status_label }}</h2>
+          <div id="status-badge" class="status {{ state.status }}">
+            <span id="status-label">{{ state_label }}</span>
           </div>
-          <p id="status-message">{{ state.message }}</p>
+          <p id="status-message">{{ state_message }}</p>
           <p class="muted">
-            Latest run:
+            {{ ui.latest_run_label }}
             <code>{{ summary.get("run_id", "not yet available") }}</code>
           </p>
           <p class="muted">
-            Scan mode:
-            <code>{{ settings["scan_mode"] }}</code>
+            {{ ui.scan_mode_label }}
+            <code>{{ scan_mode_label }} ({{ settings["scan_mode"] }})</code>
           </p>
         </aside>
       </section>
 
       <section class="grid">
-        <article class="card">
-          <h2>YAML Files</h2>
-          <div class="metric">{{ summary.get("parser", {}).get("yaml_files_scanned", 0) }}</div>
-          <p>Scanned below <code>{{ settings["base_config_path"] }}</code></p>
-        </article>
-        <article class="card">
-          <h2>Automations</h2>
-          <div class="metric">{{ summary.get("parser", {}).get("automations", 0) }}</div>
-          <p>Normalized into one dependency graph for reporting and UI use.</p>
-        </article>
-        <article class="card">
-          <h2>Suggestions</h2>
-          <div class="metric">{{ results.get("suggestions", 0) }}</div>
-          <p>Prioritized actions based on local findings and optional AI proposals.</p>
-        </article>
-        <article class="card">
-          <h2>People Tracked</h2>
-          <div class="metric">{{ geolocation_report.get("summary", {}).get("people_tracked", 0) }}</div>
-          <p>Derived from <code>person.*</code> entities first, then GPS-capable trackers if needed.</p>
-        </article>
+        {% for card in metric_cards %}
+          <article class="card">
+            <h2>{{ card.title }}</h2>
+            <div class="metric">{{ card.value }}</div>
+            <p>{{ card.description }}</p>
+            {% if card.detail %}
+              <div class="metric-detail"><code>{{ card.detail }}</code></div>
+            {% endif %}
+          </article>
+        {% endfor %}
       </section>
 
       <section class="cols">
         <article class="card">
-          <h2>Reports</h2>
+          <h2>{{ ui.reports_label }}</h2>
           <div class="reports">
-            {% for report_name in report_names %}
-              <a class="report-link" href="{{ report_urls.get(report_name, '#') }}" target="_blank" rel="noreferrer">
-                <span>{{ report_name }}</span>
-                <span>Open</span>
+            {% for card in report_cards %}
+              <a class="report-link" href="{{ card.url }}" target="_blank" rel="noreferrer">
+                <div>
+                  <strong>{{ card.name }}</strong>
+                  <div class="report-meta muted">{{ card.description }}</div>
+                </div>
+                <span>{{ ui.open_label }}</span>
               </a>
             {% endfor %}
           </div>
         </article>
 
         <article class="card">
-          <h2>Latest Findings</h2>
-          <p>
-            Missing referenced entities:
-            <code>{{ results.get("unused_entities", {}).get("missing_referenced_entities", 0) }}</code>
-          </p>
-          <p>
-            Expensive templates:
-            <code>{{ results.get("template_performance", {}).get("expensive_templates", 0) }}</code>
-          </p>
-          <p>
-            Automation issues:
-            <code>{{ results.get("automation_issues", {}).get("issues_found", 0) }}</code>
-          </p>
-          <p>
-            Runtime warnings:
-            <code>{{ summary.get("runtime", {}).get("warnings", [])|length }}</code>
-          </p>
+          <h2>{{ ui.latest_findings_label }}</h2>
+          <div class="finding-list">
+            {% for card in finding_cards %}
+              <article class="finding-card">
+                <h3>{{ card.title }}</h3>
+                <div class="finding-value">{{ card.value }}</div>
+                <p>{{ card.description }}</p>
+                <div class="finding-examples muted">
+                  {{ ui.examples_label }}:
+                  {% if card.examples %}
+                    {{ card.examples|join(", ") }}
+                  {% else %}
+                    {{ ui.no_examples }}
+                  {% endif %}
+                </div>
+              </article>
+            {% endfor %}
+          </div>
         </article>
       </section>
 
       <section class="cols">
         <article class="card">
-          <h2>Assistant</h2>
-          <p>
-            Ask about findings, settings, or let the analyzer propose Home Assistant YAML from the current scan context.
-          </p>
+          <h2>{{ ui.assistant_label }}</h2>
+          <p>{{ ui.assistant_intro }}</p>
           <form id="assistant-form" class="assistant-form">
             <textarea
               id="assistant-question"
               name="question"
-              placeholder="Example: Erstelle mir eine YAML fuer Anwesenheitslicht im Flur auf Basis der vorhandenen Entities."
+              placeholder="{{ ui.assistant_placeholder }}"
             ></textarea>
             <div class="assistant-actions">
-              <button id="assistant-submit" class="button" type="submit">Ask Analyzer</button>
+              <button id="assistant-submit" class="button" type="submit">{{ ui.assistant_button }}</button>
               <span class="muted">
-                AI:
-                <code>{{ "enabled" if settings["enable_ai"] else "disabled" }}</code>
+                {{ ui.ai_label }}:
+                <code>{{ ui.enabled_label if settings["enable_ai"] else ui.disabled_label }}</code>
                 |
-                Geo AI context:
-                <code>{{ "enabled" if settings["enable_ai_geolocation_context"] else "disabled" }}</code>
+                {{ ui.geo_ai_label }}:
+                <code>{{ ui.enabled_label if settings["enable_ai_geolocation_context"] else ui.disabled_label }}</code>
               </span>
             </div>
           </form>
           <div class="helper-list">
-            <button class="helper-pill" type="button" data-prompt="Welche drei Probleme sollte ich zuerst beheben?">Top problems</button>
-            <button class="helper-pill" type="button" data-prompt="Erklaere mir die fehlenden referenzierten Entities und wie ich sie aufraeume.">Missing entities</button>
-            <button class="helper-pill" type="button" data-prompt="Erstelle mir eine Home-Assistant-YAML fuer ein Anwesenheitslicht mit den vorhandenen Personen oder Trackern.">Presence YAML</button>
-            <button class="helper-pill" type="button" data-prompt="Welche Einstellungen sollte ich fuer dieses Add-on anpassen?">Settings advice</button>
+            {% for preset in ui.assistant_presets %}
+              <button class="helper-pill" type="button" data-prompt="{{ preset.prompt }}">{{ preset.label }}</button>
+            {% endfor %}
           </div>
-          <div id="assistant-answer" class="assistant-response">
-            Stelle eine konkrete Frage zu deinen Einstellungen, Automationen oder einem YAML-Ziel. Wenn AI deaktiviert ist, antwortet der Analyzer lokal aus den Reports.
-          </div>
+          <div id="assistant-answer" class="assistant-response">{{ ui.assistant_initial_answer }}</div>
         </article>
 
         <article class="card">
-          <h2>Guidance</h2>
-          <div class="muted-grid">
-            <p>
-              Runtime analysis:
-              <code>{{ "enabled" if settings["enable_runtime_analysis"] else "disabled" }}</code>
-            </p>
-            <p>
-              Geolocation analysis:
-              <code>{{ "enabled" if settings["enable_geolocation_analysis"] else "disabled" }}</code>
-            </p>
-            <p>
-              Lookback window:
-              <code>{{ settings["lookback_days"] }} days</code>
-            </p>
-            <p>
-              Geolocation point limit:
-              <code>{{ settings["geolocation_point_limit"] }}</code>
-            </p>
-            <p>
-              If a report looks stale, trigger a fresh scan and then reopen the linked JSON report.
-            </p>
+          <h2>{{ ui.guidance_label }}</h2>
+          <div class="guidance-list">
+            {% for item in guidance_items %}
+              <div class="guidance-item">{{ item }}</div>
+            {% endfor %}
           </div>
         </article>
       </section>
 
       <section class="wide">
         <article class="card">
-          <h2>Location Map</h2>
+          <h2>{{ ui.location_map_label }}</h2>
           {% set geo_map = geolocation_report.get("map", {}) %}
           <div class="map-shell">
             <div class="map-caption">
-              <span>
-                OpenStreetMap tile view for the latest tracked positions. Routes and markers stay visible even if tile loading is blocked.
-              </span>
+              <span>{{ ui.map_intro }}</span>
               <span>
                 {% if geo_map.get("bounds") %}
-                  Bounds:
+                  {{ ui.map_bounds_prefix }}
                   lat {{ "%.4f"|format(geo_map.get("bounds", {}).get("min_lat", 0)) }} to
                   {{ "%.4f"|format(geo_map.get("bounds", {}).get("max_lat", 0)) }},
                   lon {{ "%.4f"|format(geo_map.get("bounds", {}).get("min_lon", 0)) }} to
                   {{ "%.4f"|format(geo_map.get("bounds", {}).get("max_lon", 0)) }}
                 {% else %}
-                  No coordinate bounds available yet.
+                  {{ ui.map_no_bounds }}
                 {% endif %}
               </span>
             </div>
-            <div class="map-status-note" id="map-note">
-              The browser loads OpenStreetMap tiles directly. If your network blocks that traffic, the route overlay still stays visible.
-            </div>
+            <div class="map-status-note">{{ ui.map_note }}</div>
             <div id="location-map" class="map-stage">
-              <div class="map-empty">
-                No geolocation points are available yet. Run a scan with runtime analysis enabled and ensure Home Assistant exposes person or GPS tracker entities.
-              </div>
+              <div class="map-empty">{{ ui.client_text.no_points_available }}</div>
             </div>
             <div id="map-legend" class="map-legend"></div>
           </div>
         </article>
 
         <aside class="card">
-          <h2>People Timeline</h2>
+          <h2>{{ ui.people_timeline_label }}</h2>
           <div class="person-list">
-            {% for person in geolocation_report.get("people", []) %}
+            {% for person in people_view %}
               <article class="person-card">
                 <h3>{{ person.get("name") }}</h3>
                 <p>
                   <span class="pill">
                     <span class="legend-dot" style="background: {{ person.get('color', '#0f766e') }}"></span>
-                    Current: {{ person.get("current_state", "unknown") }}
+                    {{ ui.current_label }}: {{ person.get("current_state_label", person.get("current_state", "unknown")) }}
                   </span>
                   {% if person.get("current_when") %}
-                    <span class="pill">Last update: {{ person.get("current_when") }}</span>
+                    <span class="pill">{{ ui.last_update_label }}: {{ person.get("current_when") }}</span>
                   {% endif %}
                 </p>
                 <p>
-                  Known places:
-                  {{ person.get("visited_places", [])|join(", ") or "none" }}
+                  {{ ui.known_places_label }}:
+                  {{ person.get("visited_places_label", [])|join(", ") or ui.no_known_places }}
                 </p>
                 {% if person.get("openstreetmap_url") %}
-                  <p><a class="link" href="{{ person.get('openstreetmap_url') }}" target="_blank" rel="noreferrer">Open latest position in OpenStreetMap</a></p>
+                  <p><a class="link" href="{{ person.get('openstreetmap_url') }}" target="_blank" rel="noreferrer">{{ ui.open_osm_label }}</a></p>
                 {% endif %}
                 <p class="muted">
-                  Recent stays:
-                  {% for stay in person.get("stays", [])[-3:] %}
-                    <span class="pill">{{ stay.get("place", "unknown") }}{% if stay.get("duration_minutes") is not none %} • {{ stay.get("duration_minutes") }} min{% endif %}</span>
+                  {{ ui.recent_stays_label }}:
+                  {% for stay in person.get("stays_view", [])[-3:] %}
+                    <span class="pill">
+                      {{ stay.get("place_label", stay.get("place", "unknown")) }}
+                      {% if stay.get("duration_minutes") is not none %} • {{ stay.get("duration_minutes") }} min{% endif %}
+                    </span>
                   {% endfor %}
                 </p>
               </article>
             {% endfor %}
             {% if not geolocation_report.get("people") %}
-              <p class="muted">No people timeline is available for this scan.</p>
+              <p class="muted">{{ ui.no_people_timeline }}</p>
             {% endif %}
           </div>
         </aside>
@@ -572,6 +579,7 @@ Debugging: If values are missing, inspect the Jinja context keys passed in by th
       const geoReport = {{ geolocation_report|tojson }};
       const statusUrl = {{ status_url|tojson }};
       const chatUrl = {{ chat_url|tojson }};
+      const clientText = {{ ui.client_text|tojson }};
 
       function mercatorX(longitude, zoom) {
         const worldSize = 256 * Math.pow(2, zoom);
@@ -647,7 +655,7 @@ Debugging: If values are missing, inspect the Jinja context keys passed in by th
         legend.innerHTML = "";
 
         if (!people.length) {
-          mount.innerHTML = '<div class="map-empty">No geolocation points are available yet. Run a scan with runtime analysis enabled and ensure Home Assistant exposes person or GPS tracker entities.</div>';
+          mount.innerHTML = `<div class="map-empty">${clientText.no_points_available}</div>`;
           return;
         }
 
@@ -779,7 +787,15 @@ Debugging: If values are missing, inspect the Jinja context keys passed in by th
         try {
           const response = await fetch(statusUrl, { cache: "no-store" });
           const data = await response.json();
+          const badge = document.getElementById("status-badge");
+          const label = document.getElementById("status-label");
           document.getElementById("status-message").textContent = data.message;
+          if (badge && data.status) {
+            badge.className = `status ${data.status}`;
+          }
+          if (label && data.status_label) {
+            label.textContent = data.status_label;
+          }
         } catch (error) {
           console.debug("Status refresh failed", error);
         }
@@ -794,12 +810,12 @@ Debugging: If values are missing, inspect the Jinja context keys passed in by th
         const question = questionField.value.trim();
 
         if (!question) {
-          answerBox.textContent = "Bitte stelle zuerst eine konkrete Frage, zum Beispiel zu einer Automation, Entity oder YAML-Idee.";
+          answerBox.textContent = clientText.assistant_empty_question;
           return;
         }
 
         submitButton.disabled = true;
-        answerBox.textContent = "Analyzer is thinking...";
+        answerBox.textContent = clientText.assistant_thinking;
 
         try {
           const response = await fetch(chatUrl, {
@@ -815,9 +831,9 @@ Debugging: If values are missing, inspect the Jinja context keys passed in by th
           }
 
           const data = await response.json();
-          answerBox.textContent = data.answer || "No answer was returned.";
+          answerBox.textContent = data.answer || clientText.assistant_no_answer;
         } catch (error) {
-          answerBox.textContent = `Die Chat-Anfrage ist fehlgeschlagen. Technischer Hinweis: ${error}`;
+          answerBox.textContent = `${clientText.assistant_fetch_failed} ${error}`;
         } finally {
           submitButton.disabled = false;
         }

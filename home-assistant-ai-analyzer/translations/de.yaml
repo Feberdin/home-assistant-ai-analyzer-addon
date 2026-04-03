@@ -1,0 +1,65 @@
+# Purpose: Deutsche Labels für die Home-Assistant-Add-on-Konfigurationsseite.
+# Input/Output: Wird von Home Assistant gelesen, um Optionsnamen und Beschreibungen im UI auf Deutsch darzustellen.
+# Invariants: Die Übersetzungsschlüssel müssen exakt zu den Optionen aus config.yaml passen.
+# Debugging: Wenn ein Feld im Add-on-UI unübersetzt bleibt, zuerst Schlüsselname und Einrückung in dieser Datei prüfen.
+configuration:
+  base_config_path:
+    name: Basis-Konfigurationspfad
+    description: Eingebundenes Home-Assistant-Konfigurationsverzeichnis innerhalb des Add-on-Containers.
+  output_path:
+    name: Ausgabepfad
+    description: Verzeichnis, in das die Analyseberichte geschrieben werden.
+  log_level:
+    name: Log-Level
+    description: Detailgrad der Add-on-Logs.
+  scan_mode:
+    name: Scan-Modus
+    description: Schnell nutzt nur statische Konfiguration, Voll ergänzt Runtime-API, Tiefgehend aktiviert zusätzlich erweiterte Analysepfade.
+  lookback_days:
+    name: Rückblick-Tage
+    description: Anzahl der Tage für reservierte Runtime-Rückblickfenster.
+  run_on_startup:
+    name: Beim Start scannen
+    description: Startet automatisch einen Scan, sobald das Add-on hochfährt.
+  enable_runtime_analysis:
+    name: Laufzeitanalyse aktivieren
+    description: Fragt Home-Assistant-Laufzeitdaten über den Supervisor-Proxy ab.
+  enable_geolocation_analysis:
+    name: Geolokalisierungsanalyse aktivieren
+    description: Erstellt aus Personen- oder GPS-Tracker-Entities eine lokale Positions-Zeitachse und Karte.
+  enable_recorder_db:
+    name: Recorder-Datenbank aktivieren
+    description: Erlaubt optionale Recorder-Datenbankanalyse, wenn die Datenbankdatei lokal verfügbar ist.
+  recorder_db_path:
+    name: Recorder-Datenbankpfad
+    description: Standardpfad zur SQLite-Recorder-Datenbank innerhalb der eingebundenen Home-Assistant-Konfiguration.
+  enable_ai:
+    name: KI-Empfehlungen aktivieren
+    description: Erlaubt optionale ausgehende Anfragen an einen konfigurierten LLM-Anbieter.
+  enable_ai_geolocation_context:
+    name: Geolokalisierung mit KI teilen
+    description: Fügt nur auf ausdrücklichen Wunsch zusammengefasste Bewegungsverläufe in KI-Prompts ein.
+  llm_base_url:
+    name: LLM-Basis-URL
+    description: OpenAI-kompatible Chat-Completion-Endpunkt-URL.
+  llm_model:
+    name: LLM-Modell
+    description: Modellname, der an den KI-Anbieter gesendet wird.
+  llm_api_key:
+    name: LLM-API-Schlüssel
+    description: API-Schlüssel für ausgehende KI-Anfragen.
+  llm_max_findings:
+    name: Maximale KI-Findings
+    description: Maximale Anzahl an Findings, die an das KI-Modell weitergegeben werden.
+  max_history_entities:
+    name: Maximale Historien-Entities
+    description: Obergrenze für heutige und zukünftige gezielte Runtime-Historienanalysen.
+  geolocation_entity_limit:
+    name: Geolokalisierungs-Entity-Limit
+    description: Maximale Anzahl an Personen oder GPS-Trackern, die in einem Scan verfolgt werden.
+  geolocation_point_limit:
+    name: Geolokalisierungs-Punktlimit
+    description: Maximale Anzahl an Verlaufspunkten pro Person für die lokale Kartenansicht.
+  exclude_paths:
+    name: Ausgeschlossene Pfade
+    description: Pfade unterhalb des eingebundenen Konfigurationsverzeichnisses, die beim Scan übersprungen werden sollen.

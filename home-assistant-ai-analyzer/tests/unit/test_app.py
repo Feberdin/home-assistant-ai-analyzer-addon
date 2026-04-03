@@ -4,13 +4,13 @@ Verify that the dashboard uses ingress-safe URLs and the correct TemplateRespons
 
 Input/Output:
 Input is a monkeypatched template renderer and lightweight fake request objects.
-Output is an assertion that the request object is passed first and all action/report URLs are built from request.url_for.
+Output is an assertion that the request object is passed first, ingress URLs respect root_path, and localized text can switch to German.
 
 Important invariants:
 The dashboard must keep working even when template loading is cached internally by Jinja2, and it must not hard-code root-relative paths that break under Home Assistant ingress.
 
 How to debug:
-If this test fails, inspect the TemplateResponse signature and request.url_for handling in the installed Starlette version before changing the route again.
+If this test fails, inspect the TemplateResponse signature, root_path handling, and localization inputs before changing the route again.
 """
 
 import json
@@ -33,23 +33,17 @@ async def test_dashboard_passes_request_first_to_template_response(monkeypatch) 
 
     monkeypatch.setattr(app_module.TEMPLATES, "TemplateResponse", fake_template_response)
 
-    class FakeRequest(SimpleNamespace):
-        def url_for(self, name: str, **path_params):
-            if name == "report":
-                return f"/ingress-addon/api/report/{path_params['report_name']}"
-            routes = {
-                "trigger_scan": "/ingress-addon/scan",
-                "status": "/ingress-addon/api/status",
-                "chat": "/ingress-addon/api/chat",
-            }
-            return routes[name]
-
-    fake_request = FakeRequest()
+    fake_request = SimpleNamespace(
+        headers={"accept-language": "de-DE,de;q=0.9,en;q=0.8"},
+        scope={"root_path": "/ingress-addon"},
+    )
     response = await app_module.dashboard(fake_request)
 
     assert captured["request"] is fake_request
     assert captured["name"] == "dashboard.html"
     assert response["request"] is fake_request
+    assert response["language"] == "de"
+    assert response["ui"]["run_scan_label"] == "Scan starten"
     assert response["scan_url"] == "/ingress-addon/scan"
     assert response["status_url"] == "/ingress-addon/api/status"
     assert response["chat_url"] == "/ingress-addon/api/chat"
@@ -60,12 +54,7 @@ async def test_dashboard_passes_request_first_to_template_response(monkeypatch) 
 async def test_trigger_scan_redirects_back_to_ingress_dashboard(monkeypatch) -> None:
     monkeypatch.setattr(app_module.SCAN_MANAGER, "start_scan", lambda: True)
 
-    class FakeRequest(SimpleNamespace):
-        def url_for(self, name: str, **path_params):
-            assert name == "dashboard"
-            return "/ingress-addon/"
-
-    response = await app_module.trigger_scan(FakeRequest())
+    response = await app_module.trigger_scan(SimpleNamespace(scope={"root_path": "/ingress-addon"}))
 
     assert response.status_code == 303
     assert response.headers["location"] == "/ingress-addon/"
@@ -74,9 +63,16 @@ async def test_trigger_scan_redirects_back_to_ingress_dashboard(monkeypatch) -> 
 @pytest.mark.anyio
 async def test_chat_endpoint_returns_answer_payload(monkeypatch) -> None:
     monkeypatch.setattr(app_module, "_load_report_bundle", lambda settings: {"run_summary": {"run_id": "test-run"}})
-    monkeypatch.setattr(app_module, "answer_chat_question", lambda settings, question, reports: f"echo: {question}")
+    monkeypatch.setattr(
+        app_module,
+        "answer_chat_question",
+        lambda settings, question, reports, language: f"{language}: {question}",
+    )
 
-    response = await app_module.chat(app_module.ChatRequest(question="Bitte hilf mir"))
+    response = await app_module.chat(
+        SimpleNamespace(headers={"accept-language": "de-DE,de;q=0.9"}),
+        app_module.ChatRequest(question="Bitte hilf mir"),
+    )
 
     assert response.status_code == 200
-    assert json.loads(response.body) == {"answer": "echo: Bitte hilf mir"}
+    assert json.loads(response.body) == {"answer": "de: Bitte hilf mir"}

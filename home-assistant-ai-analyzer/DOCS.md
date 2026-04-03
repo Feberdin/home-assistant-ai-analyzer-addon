@@ -24,6 +24,7 @@ The add-on is designed to be understandable and safe:
 - answer dashboard chat questions about settings, findings, and YAML ideas
 - generate structured JSON and Markdown reports
 - expose a dashboard through Ingress
+- localize the dashboard automatically to German or English based on the active browser language
 
 ## Installation
 
@@ -35,6 +36,7 @@ The add-on is designed to be understandable and safe:
 5. Start the add-on
 6. Open the Web UI
 7. Use the built-in chat panel if you want to discuss findings or ask for YAML guidance
+8. If Home Assistant is used in German, the dashboard should automatically render in German on the next reload
 
 ## Configuration
 

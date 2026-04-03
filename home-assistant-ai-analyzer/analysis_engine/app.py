@@ -26,6 +26,18 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
 from .chat_assistant import answer_chat_question
+from .dashboard_content import (
+    build_finding_cards,
+    build_guidance_items,
+    build_metric_cards,
+    build_people_view,
+    build_report_cards,
+    build_ui,
+    detect_language,
+    localized_scan_mode,
+    localize_message,
+    localize_status,
+)
 from .models import AppSettings
 from .orchestrator import run_scan
 from .utils import read_json
@@ -137,6 +149,16 @@ def _load_report_bundle(settings: AppSettings) -> dict:
     }
 
 
+def _route_path(request: Request, route_name: str, **path_params: str) -> str:
+    """Build an ingress-safe path without leaking internal hosts or schemes into the browser."""
+
+    route_path = str(APP.url_path_for(route_name, **path_params))
+    root_path = str(request.scope.get("root_path", "") or "")
+    if root_path.endswith("/") and route_path.startswith("/"):
+        return f"{root_path[:-1]}{route_path}"
+    return f"{root_path}{route_path}"
+
+
 @APP.on_event("startup")
 async def startup_event() -> None:
     """Optionally kick off one scan after the app boots."""
@@ -149,29 +171,43 @@ async def startup_event() -> None:
 async def dashboard(request: Request) -> HTMLResponse:
     """Render the ingress dashboard with the latest status and report links."""
 
+    language = detect_language(request.headers.get("accept-language"))
+    ui = build_ui(language)
+    settings_view = SETTINGS.safe_dict()
     reports = _load_report_bundle(SETTINGS)
     summary = SCAN_MANAGER.state.latest_summary or reports.get("run_summary", {})
     results = summary.get("results", {}) if isinstance(summary, dict) else {}
     geolocation_report = reports.get("geolocation_history", {})
     report_names = _report_names()
+    report_urls = {
+        report_name: _route_path(request, "report", report_name=report_name)
+        for report_name in report_names
+    }
     return TEMPLATES.TemplateResponse(
         request,
         "dashboard.html",
         {
             "request": request,
+            "language": language,
+            "ui": ui,
             "state": SCAN_MANAGER.state,
-            "settings": SETTINGS.safe_dict(),
+            "state_message": localize_message(SCAN_MANAGER.state.message, language),
+            "state_label": localize_status(SCAN_MANAGER.state.status, language),
+            "settings": settings_view,
             "summary": summary,
             "results": results,
             "geolocation_report": geolocation_report,
+            "people_view": build_people_view(language, geolocation_report),
             "report_names": report_names,
-            "report_urls": {
-                report_name: str(request.url_for("report", report_name=report_name))
-                for report_name in report_names
-            },
-            "scan_url": str(request.url_for("trigger_scan")),
-            "status_url": str(request.url_for("status")),
-            "chat_url": str(request.url_for("chat")),
+            "report_urls": report_urls,
+            "report_cards": build_report_cards(language, report_urls),
+            "metric_cards": build_metric_cards(language, settings_view, summary, geolocation_report),
+            "finding_cards": build_finding_cards(language, summary, reports),
+            "guidance_items": build_guidance_items(language, settings_view),
+            "scan_mode_label": localized_scan_mode(language, str(settings_view.get("scan_mode", "full"))),
+            "scan_url": _route_path(request, "trigger_scan"),
+            "status_url": _route_path(request, "status"),
+            "chat_url": _route_path(request, "chat"),
         },
     )
 
@@ -183,7 +219,7 @@ async def trigger_scan(request: Request) -> RedirectResponse:
     started = SCAN_MANAGER.start_scan()
     if not started:
         SCAN_MANAGER.state.message = "A scan is already running."
-    return RedirectResponse(url=str(request.url_for("dashboard")), status_code=303)
+    return RedirectResponse(url=_route_path(request, "dashboard"), status_code=303)
 
 
 @APP.get("/api/health")
@@ -194,23 +230,26 @@ async def health() -> JSONResponse:
 
 
 @APP.get("/api/status")
-async def status() -> JSONResponse:
+async def status(request: Request) -> JSONResponse:
     """Return the current scan state and latest summary."""
 
+    language = detect_language(request.headers.get("accept-language"))
     return JSONResponse(
         {
             "status": SCAN_MANAGER.state.status,
-            "message": SCAN_MANAGER.state.message,
+            "status_label": localize_status(SCAN_MANAGER.state.status, language),
+            "message": localize_message(SCAN_MANAGER.state.message, language),
             "latest_summary": SCAN_MANAGER.state.latest_summary,
         }
     )
 
 
 @APP.post("/api/chat")
-async def chat(payload: ChatRequest) -> JSONResponse:
+async def chat(request: Request, payload: ChatRequest) -> JSONResponse:
     """Answer dashboard chat questions from the latest reports and optional AI context."""
 
-    answer = answer_chat_question(SETTINGS, payload.question, _load_report_bundle(SETTINGS))
+    language = detect_language(request.headers.get("accept-language"))
+    answer = answer_chat_question(SETTINGS, payload.question, _load_report_bundle(SETTINGS), language=language)
     return JSONResponse({"answer": answer})
 
 
