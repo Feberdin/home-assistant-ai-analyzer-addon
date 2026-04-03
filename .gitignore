@@ -1,0 +1,26 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# Editors
+.idea/
+.vscode/
+
+# Local analysis output
+analysis/
+data/
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
