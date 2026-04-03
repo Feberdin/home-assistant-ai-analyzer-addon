@@ -183,6 +183,14 @@ def _build_stays(events: list[dict]) -> list[dict]:
                 "points": len(items),
             }
         )
+
+    # Extend each stay until the next detected state change so single history points
+    # still produce a meaningful dwell time in the dashboard.
+    for index, stay in enumerate(grouped_stays):
+        if index + 1 < len(grouped_stays):
+            stay["end"] = grouped_stays[index + 1]["start"]
+        stay["duration_minutes"] = _duration_minutes(stay.get("start", ""), stay.get("end", ""))
+
     return grouped_stays[-80:]
 
 
@@ -235,12 +243,21 @@ def _build_map_model(people: list[dict], point_limit: int) -> dict:
     map_people = []
     for person in people:
         projected_points = []
+        geo_points = []
         for point in person["timeline"][-point_limit:]:
             latitude = point.get("latitude")
             longitude = point.get("longitude")
             if latitude is None or longitude is None:
                 continue
             x, y = project(latitude, longitude)
+            geo_points.append(
+                {
+                    "latitude": latitude,
+                    "longitude": longitude,
+                    "when": point.get("when", ""),
+                    "state": point.get("state", ""),
+                }
+            )
             projected_points.append(
                 {
                     "x": x,
@@ -260,13 +277,19 @@ def _build_map_model(people: list[dict], point_limit: int) -> dict:
                 "color": person["color"],
                 "polyline": " ".join(f"{point['x']},{point['y']}" for point in projected_points),
                 "points": projected_points,
+                "path": geo_points,
                 "latest": projected_points[-1],
+                "latest_coordinate": geo_points[-1],
             }
         )
 
     return {
         "width": width,
         "height": height,
+        "center": {
+            "latitude": round((min_lat + max_lat) / 2, 6),
+            "longitude": round((min_lon + max_lon) / 2, 6),
+        },
         "bounds": {
             "min_lat": min_lat,
             "max_lat": max_lat,

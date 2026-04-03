@@ -20,7 +20,8 @@ The add-on is designed to be understandable and safe:
 - flag likely expensive templates
 - summarize runtime API availability and current state inventory
 - build a geolocation timeline for people and GPS-capable trackers
-- show recent movement on a local coordinate map and OpenStreetMap links
+- show recent movement on an OpenStreetMap-backed local map and OpenStreetMap links
+- answer dashboard chat questions about settings, findings, and YAML ideas
 - generate structured JSON and Markdown reports
 - expose a dashboard through Ingress
 
@@ -33,6 +34,7 @@ The add-on is designed to be understandable and safe:
 4. Review the add-on options
 5. Start the add-on
 6. Open the Web UI
+7. Use the built-in chat panel if you want to discuss findings or ask for YAML guidance
 
 ## Configuration
 
@@ -77,7 +79,8 @@ The add-on writes these files to `/data/analysis`:
 3. Click `Run Scan`
 4. Open the generated reports from the dashboard
 5. Review `suggestions.md` first for the operator-friendly summary
-6. Review the location map and per-person timeline cards if geolocation analysis is enabled
+6. Use the Assistant card if you want to ask follow-up questions or request YAML ideas
+7. Review the location map and per-person timeline cards if geolocation analysis is enabled
 
 ## Troubleshooting
 
@@ -99,6 +102,18 @@ The add-on writes these files to `/data/analysis`:
 - Ensure Home Assistant has `person.*` entities or GPS-capable `device_tracker.*` entities with latitude and longitude
 - Increase `lookback_days` if you expect older movement history
 - Review `geolocation_history.json` for warnings and entity counts
+
+### The map shows routes but no tiles
+
+- The browser loads OpenStreetMap tiles directly, so local network filters or privacy blockers may suppress the background map
+- The route overlay should still remain visible; use the OpenStreetMap link in the people card to confirm the latest coordinates
+- Check the browser console if you suspect blocked tile requests
+
+### The dashboard chat does not answer
+
+- Refresh the dashboard after updating the add-on so the new ingress-safe API URLs are loaded
+- If AI is disabled, the chat still answers locally from the latest reports
+- If AI is enabled, verify `llm_base_url`, `llm_model`, `llm_api_key`, and outbound network access
 
 ### Recorder analysis does not run
 

@@ -2,6 +2,13 @@
 
 # Changelog
 
+## 0.3.2 - 2026-04-03
+
+- Fixed ingress routing by replacing hard-coded root URLs in the dashboard with request-aware route generation
+- Added an in-dashboard assistant endpoint and chat panel for discussing findings, settings, and YAML ideas
+- Reworked the geolocation view into a real OpenStreetMap tile-based map with route overlays and person legends
+- Improved geolocation stay durations so single history points now extend until the next state change when possible
+
 ## 0.3.1 - 2026-04-03
 
 - Fixed the dashboard `Internal Server Error` caused by the wrong `TemplateResponse` argument order with the installed FastAPI/Starlette version

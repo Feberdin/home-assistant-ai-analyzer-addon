@@ -4,13 +4,13 @@ Verify that geolocation runtime history is aggregated into per-person stays and 
 
 Input/Output:
 Input is a synthetic RuntimeSnapshot with one person entity and a short movement timeline.
-Output is a structured geolocation report with summary counts, stays, and projected map points.
+Output is a structured geolocation report with summary counts, stays, projected map points, and privacy-safe AI summaries.
 
 Important invariants:
 AI summaries should omit raw coordinates even though the local report keeps them for the map.
 
 How to debug:
-If this test fails, inspect the timeline normalization and stay aggregation output before adjusting the map projection.
+If this test fails, inspect the timeline normalization and stay aggregation output before adjusting the map projection or dashboard renderer.
 """
 
 from analysis_engine.geolocation_analyzer import analyze_geolocation
@@ -68,7 +68,11 @@ def test_geolocation_analyzer_builds_people_stays_and_map() -> None:
     assert report["summary"]["timeline_points"] == 3
     assert report["people"][0]["name"] == "Alice"
     assert len(report["people"][0]["stays"]) == 3
+    assert report["people"][0]["stays"][0]["duration_minutes"] == 60
+    assert report["people"][0]["stays"][1]["duration_minutes"] == 90
     assert "home" in report["people"][0]["visited_places"]
     assert report["people"][0]["openstreetmap_url"]
     assert report["map"]["people"][0]["polyline"]
+    assert report["map"]["people"][0]["path"][0]["latitude"] == 52.5
+    assert report["map"]["center"]["latitude"] > 52.50
     assert "latitude" not in report["ai_summary"][0]["stays"][0]

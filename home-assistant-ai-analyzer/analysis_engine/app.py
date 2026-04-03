@@ -23,7 +23,9 @@ import threading
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel
 
+from .chat_assistant import answer_chat_question
 from .models import AppSettings
 from .orchestrator import run_scan
 from .utils import read_json
@@ -88,12 +90,51 @@ class ScanManager:
                 self.state.message = f"Scan failed: {err}"
 
 
+class ChatRequest(BaseModel):
+    """Small request model for the dashboard assistant endpoint."""
+
+    question: str
+
+
 SETTINGS = AppSettings.from_options_file()
 TEMPLATES = Jinja2Templates(
     directory=str(Path(__file__).resolve().parent.parent / "webui" / "templates")
 )
 SCAN_MANAGER = ScanManager(SETTINGS)
 APP = FastAPI(title="Home Assistant AI Analyzer")
+
+
+def _report_names() -> list[str]:
+    """Return the stable list of dashboard reports exposed through the API."""
+
+    return [
+        "automation_issues.json",
+        "unused_entities.json",
+        "template_performance.json",
+        "integration_usage.json",
+        "geolocation_history.json",
+        "automation_graph.json",
+        "suggestions.md",
+        "run_summary.json",
+    ]
+
+
+def _load_report_bundle(settings: AppSettings) -> dict:
+    """Load the latest persisted reports so the UI and chat share one evidence bundle."""
+
+    output_dir = Path(settings.output_path)
+    return {
+        "run_summary": read_json(output_dir / "run_summary.json", default={}),
+        "automation_issues": read_json(output_dir / "automation_issues.json", default={}),
+        "unused_entities": read_json(output_dir / "unused_entities.json", default={}),
+        "template_performance": read_json(output_dir / "template_performance.json", default={}),
+        "integration_usage": read_json(output_dir / "integration_usage.json", default={}),
+        "geolocation_history": read_json(output_dir / "geolocation_history.json", default={}),
+        "automation_graph": read_json(output_dir / "automation_graph.json", default={}),
+        "suggestions_markdown": (output_dir / "suggestions.md").read_text(encoding="utf-8")
+        if (output_dir / "suggestions.md").exists()
+        else "",
+    }
 
 
 @APP.on_event("startup")
@@ -108,9 +149,11 @@ async def startup_event() -> None:
 async def dashboard(request: Request) -> HTMLResponse:
     """Render the ingress dashboard with the latest status and report links."""
 
-    summary = SCAN_MANAGER.state.latest_summary
+    reports = _load_report_bundle(SETTINGS)
+    summary = SCAN_MANAGER.state.latest_summary or reports.get("run_summary", {})
     results = summary.get("results", {}) if isinstance(summary, dict) else {}
-    geolocation_report = read_json(Path(SETTINGS.output_path) / "geolocation_history.json", default={})
+    geolocation_report = reports.get("geolocation_history", {})
+    report_names = _report_names()
     return TEMPLATES.TemplateResponse(
         request,
         "dashboard.html",
@@ -121,28 +164,26 @@ async def dashboard(request: Request) -> HTMLResponse:
             "summary": summary,
             "results": results,
             "geolocation_report": geolocation_report,
-            "report_names": [
-                "automation_issues.json",
-                "unused_entities.json",
-                "template_performance.json",
-                "integration_usage.json",
-                "geolocation_history.json",
-                "automation_graph.json",
-                "suggestions.md",
-                "run_summary.json",
-            ],
+            "report_names": report_names,
+            "report_urls": {
+                report_name: str(request.url_for("report", report_name=report_name))
+                for report_name in report_names
+            },
+            "scan_url": str(request.url_for("trigger_scan")),
+            "status_url": str(request.url_for("status")),
+            "chat_url": str(request.url_for("chat")),
         },
     )
 
 
 @APP.post("/scan")
-async def trigger_scan() -> RedirectResponse:
+async def trigger_scan(request: Request) -> RedirectResponse:
     """Start a new background scan and redirect back to the dashboard."""
 
     started = SCAN_MANAGER.start_scan()
     if not started:
         SCAN_MANAGER.state.message = "A scan is already running."
-    return RedirectResponse(url="/", status_code=303)
+    return RedirectResponse(url=str(request.url_for("dashboard")), status_code=303)
 
 
 @APP.get("/api/health")
@@ -165,20 +206,19 @@ async def status() -> JSONResponse:
     )
 
 
+@APP.post("/api/chat")
+async def chat(payload: ChatRequest) -> JSONResponse:
+    """Answer dashboard chat questions from the latest reports and optional AI context."""
+
+    answer = answer_chat_question(SETTINGS, payload.question, _load_report_bundle(SETTINGS))
+    return JSONResponse({"answer": answer})
+
+
 @APP.get("/api/report/{report_name}")
 async def report(report_name: str):
     """Serve one generated report either as JSON or plain text."""
 
-    allowed = {
-        "automation_issues.json",
-        "unused_entities.json",
-        "template_performance.json",
-        "integration_usage.json",
-        "geolocation_history.json",
-        "automation_graph.json",
-        "suggestions.md",
-        "run_summary.json",
-    }
+    allowed = set(_report_names())
     if report_name not in allowed:
         return JSONResponse({"error": "Unknown report name."}, status_code=404)
 

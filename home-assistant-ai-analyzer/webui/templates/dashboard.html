@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <!--
-Purpose: Render the add-on dashboard for scans, summaries, and report access.
+Purpose: Render the add-on dashboard for scans, summaries, report access, chat assistance, and geolocation review.
 Input/Output: Input is the Jinja context from analysis_engine.app; output is the ingress HTML page.
-Invariants: The page must stay readable without JavaScript and must expose the latest status clearly.
-Debugging: If values are missing, inspect the Jinja context keys passed in by the dashboard route.
+Invariants: The page must stay readable without JavaScript and ingress-safe links must never use hard-coded absolute root paths.
+Debugging: If values are missing, inspect the Jinja context keys passed in by the dashboard route before changing the client-side code.
 -->
 <html lang="en">
   <head>
@@ -41,7 +41,7 @@ Debugging: If values are missing, inspect the Jinja context keys passed in by th
       }
 
       .shell {
-        max-width: 1200px;
+        max-width: 1280px;
         margin: 0 auto;
         padding: 32px 20px 48px;
       }
@@ -110,6 +110,16 @@ Debugging: If values are missing, inspect the Jinja context keys passed in by th
         cursor: pointer;
       }
 
+      .button:disabled {
+        opacity: 0.6;
+        cursor: wait;
+      }
+
+      .button.secondary {
+        color: var(--ink);
+        background: rgba(21, 94, 117, 0.08);
+      }
+
       .grid {
         display: grid;
         gap: 18px;
@@ -144,13 +154,69 @@ Debugging: If values are missing, inspect the Jinja context keys passed in by th
         display: grid;
         gap: 18px;
         grid-template-columns: 1fr 1fr;
+        margin-bottom: 22px;
       }
 
       .wide {
         display: grid;
         gap: 18px;
         grid-template-columns: 1.3fr 0.9fr;
-        margin-top: 22px;
+      }
+
+      .assistant-form {
+        display: grid;
+        gap: 12px;
+      }
+
+      .assistant-form textarea {
+        width: 100%;
+        min-height: 130px;
+        resize: vertical;
+        border-radius: 18px;
+        border: 1px solid var(--line);
+        padding: 14px 16px;
+        font: inherit;
+        color: var(--ink);
+        background: rgba(255, 255, 255, 0.72);
+      }
+
+      .assistant-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .assistant-response {
+        margin-top: 14px;
+        border-radius: 18px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.64);
+        padding: 16px;
+        min-height: 140px;
+        white-space: pre-wrap;
+      }
+
+      .helper-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      .helper-pill {
+        border: 0;
+        border-radius: 999px;
+        padding: 8px 12px;
+        background: rgba(15, 118, 110, 0.1);
+        color: var(--ink);
+        font: inherit;
+        cursor: pointer;
+      }
+
+      .muted-grid {
+        display: grid;
+        gap: 10px;
       }
 
       .map-shell {
@@ -158,20 +224,7 @@ Debugging: If values are missing, inspect the Jinja context keys passed in by th
         border: 1px solid var(--line);
         background:
           linear-gradient(180deg, rgba(15, 118, 110, 0.08), rgba(255, 255, 255, 0.9)),
-          repeating-linear-gradient(
-            90deg,
-            rgba(82, 98, 104, 0.08) 0,
-            rgba(82, 98, 104, 0.08) 1px,
-            transparent 1px,
-            transparent 120px
-          ),
-          repeating-linear-gradient(
-            180deg,
-            rgba(82, 98, 104, 0.08) 0,
-            rgba(82, 98, 104, 0.08) 1px,
-            transparent 1px,
-            transparent 84px
-          );
+          linear-gradient(180deg, rgba(255,255,255,0.32), rgba(255,255,255,0.8));
         overflow: hidden;
       }
 
@@ -184,10 +237,54 @@ Debugging: If values are missing, inspect the Jinja context keys passed in by th
         color: var(--muted);
       }
 
-      svg {
-        display: block;
+      .map-status-note {
+        padding: 8px 14px 12px;
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+
+      .map-stage {
+        position: relative;
+        height: 440px;
+        overflow: hidden;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(246, 240, 230, 0.95));
+      }
+
+      .map-empty {
+        display: grid;
+        place-items: center;
+        height: 100%;
+        padding: 24px;
+        text-align: center;
+        color: var(--muted);
+      }
+
+      .tile-layer,
+      .map-overlay {
+        position: absolute;
+        inset: 0;
+      }
+
+      .tile-layer img {
+        position: absolute;
+        width: 256px;
+        height: 256px;
+        user-select: none;
+        -webkit-user-drag: none;
+      }
+
+      .map-overlay {
         width: 100%;
-        height: auto;
+        height: 100%;
+        pointer-events: none;
+      }
+
+      .map-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 0 14px 14px;
       }
 
       .person-list {
@@ -237,11 +334,16 @@ Debugging: If values are missing, inspect the Jinja context keys passed in by th
         color: var(--muted);
       }
 
-      @media (max-width: 900px) {
+      @media (max-width: 980px) {
         .hero,
         .grid,
-        .cols {
+        .cols,
+        .wide {
           grid-template-columns: 1fr;
+        }
+
+        .map-caption {
+          flex-direction: column;
         }
       }
     </style>
@@ -256,7 +358,7 @@ Debugging: If values are missing, inspect the Jinja context keys passed in by th
             Scan the mounted Home Assistant configuration, compare it with runtime data,
             and generate explainable findings before changing anything live.
           </p>
-          <form action="/scan" method="post">
+          <form action="{{ scan_url }}" method="post">
             <button class="button" type="submit">Run Scan</button>
           </form>
         </article>
@@ -306,7 +408,7 @@ Debugging: If values are missing, inspect the Jinja context keys passed in by th
           <h2>Reports</h2>
           <div class="reports">
             {% for report_name in report_names %}
-              <a class="report-link" href="/api/report/{{ report_name }}" target="_blank" rel="noreferrer">
+              <a class="report-link" href="{{ report_urls.get(report_name, '#') }}" target="_blank" rel="noreferrer">
                 <span>{{ report_name }}</span>
                 <span>Open</span>
               </a>
@@ -335,67 +437,97 @@ Debugging: If values are missing, inspect the Jinja context keys passed in by th
         </article>
       </section>
 
+      <section class="cols">
+        <article class="card">
+          <h2>Assistant</h2>
+          <p>
+            Ask about findings, settings, or let the analyzer propose Home Assistant YAML from the current scan context.
+          </p>
+          <form id="assistant-form" class="assistant-form">
+            <textarea
+              id="assistant-question"
+              name="question"
+              placeholder="Example: Erstelle mir eine YAML fuer Anwesenheitslicht im Flur auf Basis der vorhandenen Entities."
+            ></textarea>
+            <div class="assistant-actions">
+              <button id="assistant-submit" class="button" type="submit">Ask Analyzer</button>
+              <span class="muted">
+                AI:
+                <code>{{ "enabled" if settings["enable_ai"] else "disabled" }}</code>
+                |
+                Geo AI context:
+                <code>{{ "enabled" if settings["enable_ai_geolocation_context"] else "disabled" }}</code>
+              </span>
+            </div>
+          </form>
+          <div class="helper-list">
+            <button class="helper-pill" type="button" data-prompt="Welche drei Probleme sollte ich zuerst beheben?">Top problems</button>
+            <button class="helper-pill" type="button" data-prompt="Erklaere mir die fehlenden referenzierten Entities und wie ich sie aufraeume.">Missing entities</button>
+            <button class="helper-pill" type="button" data-prompt="Erstelle mir eine Home-Assistant-YAML fuer ein Anwesenheitslicht mit den vorhandenen Personen oder Trackern.">Presence YAML</button>
+            <button class="helper-pill" type="button" data-prompt="Welche Einstellungen sollte ich fuer dieses Add-on anpassen?">Settings advice</button>
+          </div>
+          <div id="assistant-answer" class="assistant-response">
+            Stelle eine konkrete Frage zu deinen Einstellungen, Automationen oder einem YAML-Ziel. Wenn AI deaktiviert ist, antwortet der Analyzer lokal aus den Reports.
+          </div>
+        </article>
+
+        <article class="card">
+          <h2>Guidance</h2>
+          <div class="muted-grid">
+            <p>
+              Runtime analysis:
+              <code>{{ "enabled" if settings["enable_runtime_analysis"] else "disabled" }}</code>
+            </p>
+            <p>
+              Geolocation analysis:
+              <code>{{ "enabled" if settings["enable_geolocation_analysis"] else "disabled" }}</code>
+            </p>
+            <p>
+              Lookback window:
+              <code>{{ settings["lookback_days"] }} days</code>
+            </p>
+            <p>
+              Geolocation point limit:
+              <code>{{ settings["geolocation_point_limit"] }}</code>
+            </p>
+            <p>
+              If a report looks stale, trigger a fresh scan and then reopen the linked JSON report.
+            </p>
+          </div>
+        </article>
+      </section>
+
       <section class="wide">
         <article class="card">
           <h2>Location Map</h2>
           {% set geo_map = geolocation_report.get("map", {}) %}
-          {% if geo_map.get("people") %}
-            <div class="map-shell">
-              <div class="map-caption">
-                <span>
-                  Coordinate view for the latest geolocation timeline.
-                </span>
-                <span>
+          <div class="map-shell">
+            <div class="map-caption">
+              <span>
+                OpenStreetMap tile view for the latest tracked positions. Routes and markers stay visible even if tile loading is blocked.
+              </span>
+              <span>
+                {% if geo_map.get("bounds") %}
                   Bounds:
                   lat {{ "%.4f"|format(geo_map.get("bounds", {}).get("min_lat", 0)) }} to
                   {{ "%.4f"|format(geo_map.get("bounds", {}).get("max_lat", 0)) }},
                   lon {{ "%.4f"|format(geo_map.get("bounds", {}).get("min_lon", 0)) }} to
                   {{ "%.4f"|format(geo_map.get("bounds", {}).get("max_lon", 0)) }}
-                </span>
-              </div>
-              <svg viewBox="0 0 {{ geo_map.get('width', 960) }} {{ geo_map.get('height', 420) }}" role="img" aria-label="Geolocation route map">
-                <rect x="0" y="0" width="{{ geo_map.get('width', 960) }}" height="{{ geo_map.get('height', 420) }}" fill="rgba(255,255,255,0.52)"></rect>
-                {% for person in geo_map.get("people", []) %}
-                  <polyline
-                    points="{{ person.get('polyline', '') }}"
-                    fill="none"
-                    stroke="{{ person.get('color', '#0f766e') }}"
-                    stroke-width="4"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    opacity="0.75"
-                  ></polyline>
-                  {% for point in person.get("points", [])[:-1] %}
-                    <circle
-                      cx="{{ point.get('x') }}"
-                      cy="{{ point.get('y') }}"
-                      r="4"
-                      fill="{{ person.get('color', '#0f766e') }}"
-                      opacity="0.5"
-                    ></circle>
-                  {% endfor %}
-                  {% set latest = person.get("latest", {}) %}
-                  <circle
-                    cx="{{ latest.get('x', 0) }}"
-                    cy="{{ latest.get('y', 0) }}"
-                    r="8"
-                    fill="{{ person.get('color', '#0f766e') }}"
-                    stroke="white"
-                    stroke-width="3"
-                  ></circle>
-                  <text
-                    x="{{ latest.get('x', 0) + 12 }}"
-                    y="{{ latest.get('y', 0) - 12 }}"
-                    font-size="14"
-                    font-weight="700"
-                    fill="#1d2b2f"
-                  >{{ person.get("name") }}</text>
-                {% endfor %}
-              </svg>
+                {% else %}
+                  No coordinate bounds available yet.
+                {% endif %}
+              </span>
             </div>
-          {% else %}
-            <p>No geolocation points are available yet. Run a scan with runtime analysis enabled and ensure Home Assistant exposes person or GPS tracker entities.</p>
-          {% endif %}
+            <div class="map-status-note" id="map-note">
+              The browser loads OpenStreetMap tiles directly. If your network blocks that traffic, the route overlay still stays visible.
+            </div>
+            <div id="location-map" class="map-stage">
+              <div class="map-empty">
+                No geolocation points are available yet. Run a scan with runtime analysis enabled and ensure Home Assistant exposes person or GPS tracker entities.
+              </div>
+            </div>
+            <div id="map-legend" class="map-legend"></div>
+          </div>
         </article>
 
         <aside class="card">
@@ -437,9 +569,215 @@ Debugging: If values are missing, inspect the Jinja context keys passed in by th
     </main>
 
     <script>
+      const geoReport = {{ geolocation_report|tojson }};
+      const statusUrl = {{ status_url|tojson }};
+      const chatUrl = {{ chat_url|tojson }};
+
+      function mercatorX(longitude, zoom) {
+        const worldSize = 256 * Math.pow(2, zoom);
+        return ((longitude + 180) / 360) * worldSize;
+      }
+
+      function mercatorY(latitude, zoom) {
+        const clampedLat = Math.max(-85.05112878, Math.min(85.05112878, latitude));
+        const radians = (clampedLat * Math.PI) / 180;
+        const worldSize = 256 * Math.pow(2, zoom);
+        return (0.5 - Math.log((1 + Math.sin(radians)) / (1 - Math.sin(radians))) / (4 * Math.PI)) * worldSize;
+      }
+
+      function extractPeopleForMap(report) {
+        return (report.people || [])
+          .map((person) => {
+            const points = (person.timeline || [])
+              .filter((entry) => Number.isFinite(entry.latitude) && Number.isFinite(entry.longitude))
+              .map((entry) => ({
+                latitude: entry.latitude,
+                longitude: entry.longitude,
+                state: entry.state || "",
+                when: entry.when || "",
+              }));
+
+            return {
+              name: person.name,
+              color: person.color || "#0f766e",
+              entityId: person.entity_id,
+              points,
+            };
+          })
+          .filter((person) => person.points.length > 0);
+      }
+
+      function chooseZoom(people, width, height) {
+        const padding = 80;
+        for (let zoom = 16; zoom >= 2; zoom -= 1) {
+          const xs = [];
+          const ys = [];
+          people.forEach((person) => {
+            person.points.forEach((point) => {
+              xs.push(mercatorX(point.longitude, zoom));
+              ys.push(mercatorY(point.latitude, zoom));
+            });
+          });
+
+          const deltaX = Math.max(...xs) - Math.min(...xs);
+          const deltaY = Math.max(...ys) - Math.min(...ys);
+          if (deltaX <= width - padding && deltaY <= height - padding) {
+            return zoom;
+          }
+        }
+        return 2;
+      }
+
+      function createSvgNode(tagName, attributes) {
+        const node = document.createElementNS("http://www.w3.org/2000/svg", tagName);
+        Object.entries(attributes).forEach(([key, value]) => {
+          node.setAttribute(key, value);
+        });
+        return node;
+      }
+
+      function renderLocationMap(report) {
+        const mount = document.getElementById("location-map");
+        const legend = document.getElementById("map-legend");
+        if (!mount || !legend) {
+          return;
+        }
+
+        const people = extractPeopleForMap(report);
+        legend.innerHTML = "";
+
+        if (!people.length) {
+          mount.innerHTML = '<div class="map-empty">No geolocation points are available yet. Run a scan with runtime analysis enabled and ensure Home Assistant exposes person or GPS tracker entities.</div>';
+          return;
+        }
+
+        const width = Math.max(mount.clientWidth || 0, 320);
+        const height = mount.clientHeight || 440;
+        const zoom = chooseZoom(people, width, height);
+
+        const projectedPeople = people.map((person) => ({
+          ...person,
+          points: person.points.map((point) => ({
+            ...point,
+            x: mercatorX(point.longitude, zoom),
+            y: mercatorY(point.latitude, zoom),
+          })),
+        }));
+
+        const allX = projectedPeople.flatMap((person) => person.points.map((point) => point.x));
+        const allY = projectedPeople.flatMap((person) => person.points.map((point) => point.y));
+        const centerX = (Math.min(...allX) + Math.max(...allX)) / 2;
+        const centerY = (Math.min(...allY) + Math.max(...allY)) / 2;
+        const viewLeft = centerX - width / 2;
+        const viewTop = centerY - height / 2;
+        const tilesPerAxis = Math.pow(2, zoom);
+
+        mount.innerHTML = "";
+
+        const tileLayer = document.createElement("div");
+        tileLayer.className = "tile-layer";
+
+        const startTileX = Math.floor(viewLeft / 256);
+        const endTileX = Math.floor((viewLeft + width) / 256);
+        const startTileY = Math.floor(viewTop / 256);
+        const endTileY = Math.floor((viewTop + height) / 256);
+
+        for (let tileX = startTileX; tileX <= endTileX; tileX += 1) {
+          for (let tileY = startTileY; tileY <= endTileY; tileY += 1) {
+            if (tileY < 0 || tileY >= tilesPerAxis) {
+              continue;
+            }
+
+            const wrappedX = ((tileX % tilesPerAxis) + tilesPerAxis) % tilesPerAxis;
+            const image = document.createElement("img");
+            image.src = `https://tile.openstreetmap.org/${zoom}/${wrappedX}/${tileY}.png`;
+            image.alt = "";
+            image.loading = "lazy";
+            image.referrerPolicy = "no-referrer";
+            image.style.left = `${tileX * 256 - viewLeft}px`;
+            image.style.top = `${tileY * 256 - viewTop}px`;
+            tileLayer.appendChild(image);
+          }
+        }
+
+        const overlay = createSvgNode("svg", {
+          class: "map-overlay",
+          viewBox: `0 0 ${width} ${height}`,
+          role: "img",
+          "aria-label": "Recent Home Assistant location timeline",
+        });
+
+        projectedPeople.forEach((person) => {
+          const screenPoints = person.points.map((point) => ({
+            ...point,
+            screenX: point.x - viewLeft,
+            screenY: point.y - viewTop,
+          }));
+
+          if (screenPoints.length > 1) {
+            overlay.appendChild(
+              createSvgNode("polyline", {
+                points: screenPoints.map((point) => `${point.screenX},${point.screenY}`).join(" "),
+                fill: "none",
+                stroke: person.color,
+                "stroke-width": "4",
+                "stroke-linecap": "round",
+                "stroke-linejoin": "round",
+                opacity: "0.8",
+              })
+            );
+          }
+
+          screenPoints.slice(0, -1).forEach((point) => {
+            overlay.appendChild(
+              createSvgNode("circle", {
+                cx: point.screenX,
+                cy: point.screenY,
+                r: "4",
+                fill: person.color,
+                opacity: "0.45",
+              })
+            );
+          });
+
+          const latest = screenPoints[screenPoints.length - 1];
+          overlay.appendChild(
+            createSvgNode("circle", {
+              cx: latest.screenX,
+              cy: latest.screenY,
+              r: "8",
+              fill: person.color,
+              stroke: "white",
+              "stroke-width": "3",
+            })
+          );
+          overlay.appendChild(
+            createSvgNode("text", {
+              x: latest.screenX + 12,
+              y: latest.screenY - 12,
+              "font-size": "14",
+              "font-weight": "700",
+              fill: "#1d2b2f",
+            })
+          ).textContent = person.name;
+
+          const legendItem = document.createElement("span");
+          legendItem.className = "pill";
+          const dot = document.createElement("span");
+          dot.className = "legend-dot";
+          dot.style.background = person.color;
+          legendItem.appendChild(dot);
+          legendItem.appendChild(document.createTextNode(person.name));
+          legend.appendChild(legendItem);
+        });
+
+        mount.appendChild(tileLayer);
+        mount.appendChild(overlay);
+      }
+
       async function refreshStatus() {
         try {
-          const response = await fetch("/api/status", { cache: "no-store" });
+          const response = await fetch(statusUrl, { cache: "no-store" });
           const data = await response.json();
           document.getElementById("status-message").textContent = data.message;
         } catch (error) {
@@ -447,6 +785,61 @@ Debugging: If values are missing, inspect the Jinja context keys passed in by th
         }
       }
 
+      async function handleAssistantSubmit(event) {
+        event.preventDefault();
+
+        const questionField = document.getElementById("assistant-question");
+        const answerBox = document.getElementById("assistant-answer");
+        const submitButton = document.getElementById("assistant-submit");
+        const question = questionField.value.trim();
+
+        if (!question) {
+          answerBox.textContent = "Bitte stelle zuerst eine konkrete Frage, zum Beispiel zu einer Automation, Entity oder YAML-Idee.";
+          return;
+        }
+
+        submitButton.disabled = true;
+        answerBox.textContent = "Analyzer is thinking...";
+
+        try {
+          const response = await fetch(chatUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ question }),
+          });
+
+          if (!response.ok) {
+            throw new Error(`Chat request failed with status ${response.status}`);
+          }
+
+          const data = await response.json();
+          answerBox.textContent = data.answer || "No answer was returned.";
+        } catch (error) {
+          answerBox.textContent = `Die Chat-Anfrage ist fehlgeschlagen. Technischer Hinweis: ${error}`;
+        } finally {
+          submitButton.disabled = false;
+        }
+      }
+
+      document.getElementById("assistant-form")?.addEventListener("submit", handleAssistantSubmit);
+      document.querySelectorAll("[data-prompt]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const questionField = document.getElementById("assistant-question");
+          questionField.value = button.dataset.prompt || "";
+          questionField.focus();
+        });
+      });
+
+      let resizeTimer;
+      window.addEventListener("resize", () => {
+        window.clearTimeout(resizeTimer);
+        resizeTimer = window.setTimeout(() => renderLocationMap(geoReport), 120);
+      });
+
+      renderLocationMap(geoReport);
+      refreshStatus();
       window.setInterval(refreshStatus, 5000);
     </script>
   </body>
