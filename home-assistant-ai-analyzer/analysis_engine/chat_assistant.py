@@ -54,6 +54,7 @@ def _answer_locally(question: str, reports: dict, ai_enabled: bool, language: st
     settings = summary.get("settings", {})
     suggestions = reports.get("suggestions_markdown", "")
     geo = reports.get("geolocation_history", {})
+    geo_summary = geo.get("summary", {})
 
     if german:
         lines = [
@@ -93,6 +94,31 @@ def _answer_locally(question: str, reports: dict, ai_enabled: bool, language: st
                 "",
             ]
         )
+    elif "intervall" in lower or "route" in lower or "tesla" in lower:
+        if german:
+            lines.extend(
+                [
+                    "Es gibt aktuell kein festes Polling-Intervall des Add-ons.",
+                    f"Es nutzt die Home-Assistant-Historie der letzten `{geo_summary.get('lookback_days', settings.get('lookback_days', 0))}` Tage",
+                    f"und behält bis zu `{geo_summary.get('point_limit', 0)}` signifikante Ortsänderungen pro verfolgter Entität.",
+                    f"Aktuell erkannte Fahrzeuge: `{geo_summary.get('vehicle_trackers', 0)}`",
+                    "",
+                    "Wenn dein Tesla als `device_tracker.*` mit Koordinaten in Home Assistant auftaucht, wird er jetzt zusätzlich zu Personenrouten berücksichtigt.",
+                    "",
+                ]
+            )
+        else:
+            lines.extend(
+                [
+                    "There is currently no fixed polling interval inside the add-on.",
+                    f"It uses Home Assistant history for the last `{geo_summary.get('lookback_days', settings.get('lookback_days', 0))}` days",
+                    f"and keeps up to `{geo_summary.get('point_limit', 0)}` significant location changes per tracked entity.",
+                    f"Currently detected vehicles: `{geo_summary.get('vehicle_trackers', 0)}`",
+                    "",
+                    "If your Tesla appears in Home Assistant as a `device_tracker.*` with coordinates, it is now included alongside person routes.",
+                    "",
+                ]
+            )
     elif "geo" in lower or "person" in lower or "standort" in lower:
         people = geo.get("people", [])
         if people:

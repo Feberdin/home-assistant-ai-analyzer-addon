@@ -2,6 +2,13 @@
 
 # Changelog
 
+## 0.3.4 - 2026-04-03
+
+- Added route-oriented geolocation summaries with approximate distance and point counts per tracked entity
+- Included unlinked vehicle trackers such as Tesla device trackers alongside person routes instead of hiding them whenever person entities exist
+- Added dashboard guidance that explains there is no fixed add-on polling interval and that route detail depends on Home Assistant history updates
+- Improved the timeline cards to show whether an item is a person, vehicle, or generic tracker
+
 ## 0.3.3 - 2026-04-03
 
 - Added automatic German/English dashboard localization based on the browser language used inside Home Assistant ingress

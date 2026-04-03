@@ -20,6 +20,7 @@ The add-on is designed to be understandable and safe:
 - flag likely expensive templates
 - summarize runtime API availability and current state inventory
 - build a geolocation timeline for people and GPS-capable trackers
+- include unlinked vehicle trackers such as Tesla location trackers when Home Assistant exposes them as coordinate-capable `device_tracker.*` entities
 - show recent movement on an OpenStreetMap-backed local map and OpenStreetMap links
 - answer dashboard chat questions about settings, findings, and YAML ideas
 - generate structured JSON and Markdown reports
@@ -59,6 +60,7 @@ The add-on is designed to be understandable and safe:
 - `max_history_entities`: Reserved limit for bounded runtime history analysis
 - `geolocation_entity_limit`: Maximum number of tracked people or GPS trackers in one scan
 - `geolocation_point_limit`: Maximum number of map points rendered per person
+- Route fidelity depends on how often the underlying Home Assistant tracker updates and what the recorder/history API preserves
 - `exclude_paths`: Paths below the config directory that should not be scanned
 
 ## Generated Reports
@@ -104,6 +106,13 @@ The add-on writes these files to `/data/analysis`:
 - Ensure Home Assistant has `person.*` entities or GPS-capable `device_tracker.*` entities with latitude and longitude
 - Increase `lookback_days` if you expect older movement history
 - Review `geolocation_history.json` for warnings and entity counts
+
+### How often are routes updated?
+
+- The add-on itself does not poll location data on a fixed timer
+- It reads Home Assistant history during each scan, bounded by `lookback_days`
+- The route detail depends on how often the original tracker updates and what Home Assistant records as significant changes
+- `geolocation_point_limit` controls how many recent route points are kept per tracked entity in the report and dashboard
 
 ### The map shows routes but no tiles
 

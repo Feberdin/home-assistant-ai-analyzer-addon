@@ -157,21 +157,45 @@ def _maybe_collect_recorder(settings: AppSettings, snapshot: RuntimeSnapshot) ->
 
 
 def _collect_geolocation_entities(states: dict[str, dict], limit: int) -> list[dict]:
-    """Pick person entities first and fall back to GPS-capable device trackers when needed."""
+    """Pick people first, then add unlinked vehicle-like trackers and other extra trackers when space allows."""
 
     people = []
-    fallback_trackers = []
+    vehicle_trackers = []
+    extra_trackers = []
+    linked_tracker_ids: set[str] = set()
 
     for entity_id, state in sorted(states.items()):
         if entity_id.startswith("person."):
             people.append(_state_to_geolocation_candidate(entity_id, state))
+            source_entity = str(state.get("attributes", {}).get("source", "")).strip()
+            if source_entity.startswith("device_tracker."):
+                linked_tracker_ids.add(source_entity)
             continue
 
-        if entity_id.startswith("device_tracker.") and _state_has_coordinates(state):
-            fallback_trackers.append(_state_to_geolocation_candidate(entity_id, state))
+    for entity_id, state in sorted(states.items()):
+        if not entity_id.startswith("device_tracker.") or not _state_has_coordinates(state):
+            continue
 
-    candidates = people if people else fallback_trackers
-    return [candidate for candidate in candidates[:limit] if candidate]
+        if entity_id in linked_tracker_ids:
+            continue
+
+        candidate = _state_to_geolocation_candidate(entity_id, state)
+        if candidate["kind"] == "vehicle":
+            vehicle_trackers.append(candidate)
+        else:
+            extra_trackers.append(candidate)
+
+    candidates = [candidate for candidate in people if candidate]
+    candidates.extend(candidate for candidate in vehicle_trackers if candidate)
+
+    if not candidates:
+        candidates = [candidate for candidate in extra_trackers if candidate]
+    else:
+        remaining = max(0, limit - len(candidates))
+        if remaining:
+            candidates.extend(extra_trackers[:remaining])
+
+    return candidates[:limit]
 
 
 def _state_to_geolocation_candidate(entity_id: str, state: dict) -> dict:
@@ -182,6 +206,7 @@ def _state_to_geolocation_candidate(entity_id: str, state: dict) -> dict:
         "entity_id": entity_id,
         "name": attributes.get("friendly_name", entity_id),
         "domain": entity_id.split(".", 1)[0],
+        "kind": _classify_geolocation_candidate(entity_id, state),
         "state": state.get("state", "unknown"),
         "latitude": _safe_float(attributes.get("latitude")),
         "longitude": _safe_float(attributes.get("longitude")),
@@ -196,6 +221,27 @@ def _state_has_coordinates(state: dict) -> bool:
 
     attributes = state.get("attributes", {})
     return _safe_float(attributes.get("latitude")) is not None and _safe_float(attributes.get("longitude")) is not None
+
+
+def _classify_geolocation_candidate(entity_id: str, state: dict) -> str:
+    """Return a lightweight semantic kind so the UI can distinguish people from vehicles and generic trackers."""
+
+    if entity_id.startswith("person."):
+        return "person"
+
+    haystack = " ".join(
+        str(value).lower()
+        for value in (
+            entity_id,
+            state.get("attributes", {}).get("friendly_name", ""),
+            state.get("attributes", {}).get("manufacturer", ""),
+            state.get("attributes", {}).get("model", ""),
+        )
+    )
+    vehicle_keywords = ("tesla", "vehicle", "car", "auto", "fahrzeug", "model 3", "model y", "model s", "model x")
+    if any(keyword in haystack for keyword in vehicle_keywords):
+        return "vehicle"
+    return "tracker"
 
 
 def _safe_float(value) -> float | None:

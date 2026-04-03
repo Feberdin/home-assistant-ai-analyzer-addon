@@ -9,4 +9,4 @@ Analyze your Home Assistant installation and generate structured findings for:
 - person geolocation history and movement patterns
 - improvement suggestions and optional AI proposals
 
-The add-on provides a localized ingress dashboard, a local people map view with OpenStreetMap tiles, a built-in chat assistant for findings and YAML ideas, and machine-readable reports in `/data/analysis`.
+The add-on provides a localized ingress dashboard, a local route map view with OpenStreetMap tiles, a built-in chat assistant for findings and YAML ideas, and machine-readable reports in `/data/analysis`.

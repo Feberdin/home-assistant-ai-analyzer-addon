@@ -63,12 +63,18 @@ TRANSLATIONS = {
         "map_note": (
             "The browser loads OpenStreetMap tiles directly. If your network blocks that traffic, the route overlay still remains visible."
         ),
-        "people_timeline_label": "People Timeline",
+        "people_timeline_label": "Routes and Timeline",
+        "kind_person": "Person",
+        "kind_vehicle": "Vehicle",
+        "kind_tracker": "Tracker",
         "current_label": "Current",
         "last_update_label": "Last update",
         "known_places_label": "Known places",
         "open_osm_label": "Open latest position in OpenStreetMap",
         "recent_stays_label": "Recent stays",
+        "route_summary_label": "Route",
+        "route_points_label": "points",
+        "route_distance_label": "km",
         "no_people_timeline": "No people timeline is available for this scan.",
         "no_known_places": "none",
         "no_examples": "No concrete examples are available yet.",
@@ -97,8 +103,8 @@ TRANSLATIONS = {
         "metric_automations_description": "Automations normalized into one internal model so references, templates, and actions can be compared consistently.",
         "metric_suggestions_title": "Suggestions",
         "metric_suggestions_description": "Prioritized actions derived from the findings, not just raw warning counts.",
-        "metric_people_title": "People Tracked",
-        "metric_people_description": "People or GPS-capable trackers found in runtime history and prepared for timeline analysis.",
+        "metric_people_title": "Tracked Entities",
+        "metric_people_description": "People, vehicles, or extra GPS trackers found in runtime history and prepared for route analysis.",
         "report_automation_issues": "Automation structure findings with reasons, severity, and remediation hints.",
         "report_unused_entities": "Entity references that look missing at runtime or likely unused in YAML.",
         "report_template_performance": "Template cost heuristics, why they were flagged, and what to improve.",
@@ -125,9 +131,10 @@ TRANSLATIONS = {
             "Warnings from API or recorder collection. They usually explain why parts of the analysis are incomplete or need extra permissions."
         ),
         "guidance_runtime": "Runtime analysis is {value}. This controls whether the add-on can compare YAML with live Home Assistant state.",
-        "guidance_geo": "Geolocation analysis is {value}. When enabled, people and tracker history is summarized locally into stays and routes.",
+        "guidance_geo": "Geolocation analysis is {value}. When enabled, people, vehicles, and tracker history is summarized locally into stays and routes.",
         "guidance_lookback": "Lookback window: {value} days. Increase this if you want longer history for people movement or runtime trend checks.",
-        "guidance_points": "Geolocation point limit: {value}. This is the maximum number of timeline points kept per person for the map.",
+        "guidance_points": "Geolocation point limit: {value}. This is the maximum number of timeline points kept per tracked entity for the map.",
+        "guidance_interval": "There is no fixed add-on polling interval. Routes use the recorded Home Assistant history within the last {days} days and keep up to {points} significant location changes per tracked entity.",
         "guidance_reports": "If a report looks stale, run a fresh scan and reopen the linked report afterwards.",
         "message_loaded": "Loaded the latest scan summary from disk.",
         "message_no_scan": "No scan has been started yet.",
@@ -180,12 +187,18 @@ TRANSLATIONS = {
         "map_note": (
             "Die Browseransicht lädt OpenStreetMap-Kacheln direkt. Wenn dein Netzwerk das blockiert, bleibt das Routen-Overlay trotzdem sichtbar."
         ),
-        "people_timeline_label": "Personen-Zeitachse",
+        "people_timeline_label": "Routen und Zeitachse",
+        "kind_person": "Person",
+        "kind_vehicle": "Fahrzeug",
+        "kind_tracker": "Tracker",
         "current_label": "Aktuell",
         "last_update_label": "Letzte Aktualisierung",
         "known_places_label": "Bekannte Orte",
         "open_osm_label": "Neueste Position in OpenStreetMap öffnen",
         "recent_stays_label": "Letzte Aufenthalte",
+        "route_summary_label": "Route",
+        "route_points_label": "Punkte",
+        "route_distance_label": "km",
         "no_people_timeline": "Für diesen Scan ist noch keine Personen-Zeitachse verfügbar.",
         "no_known_places": "keine",
         "no_examples": "Es sind noch keine konkreten Beispiele verfügbar.",
@@ -214,8 +227,8 @@ TRANSLATIONS = {
         "metric_automations_description": "Diese Automationen wurden in ein gemeinsames Modell überführt, damit Referenzen, Templates und Aktionen vergleichbar analysiert werden können.",
         "metric_suggestions_title": "Empfehlungen",
         "metric_suggestions_description": "Priorisierte Maßnahmen aus den Findings, nicht nur eine rohe Anzahl an Warnungen.",
-        "metric_people_title": "Erkannte Personen",
-        "metric_people_description": "Personen oder GPS-Tracker, die in der Laufzeithistorie gefunden und für Zeitachsen analysiert wurden.",
+        "metric_people_title": "Verfolgte Entitäten",
+        "metric_people_description": "Personen, Fahrzeuge oder zusätzliche GPS-Tracker, die in der Laufzeithistorie gefunden und für Routen analysiert wurden.",
         "report_automation_issues": "Strukturprobleme in Automationen mit Begründung, Schweregrad und Verbesserungshinweisen.",
         "report_unused_entities": "Entity-Referenzen, die zur Laufzeit fehlen oder in YAML wahrscheinlich ungenutzt sind.",
         "report_template_performance": "Template-Kostenheuristiken, warum sie auffällig sind und was du verbessern kannst.",
@@ -243,9 +256,10 @@ TRANSLATIONS = {
             "Warnungen aus API- oder Recorder-Abfragen. Sie erklären meist, warum Teile der Analyse unvollständig sind oder zusätzliche Rechte brauchen."
         ),
         "guidance_runtime": "Laufzeitanalyse ist {value}. Nur damit kann das Add-on YAML mit dem aktuellen Home-Assistant-Zustand vergleichen.",
-        "guidance_geo": "Geolokalisierungsanalyse ist {value}. Wenn sie aktiv ist, werden Personen- und Tracker-Verläufe lokal zu Aufenthalten und Routen verdichtet.",
+        "guidance_geo": "Geolokalisierungsanalyse ist {value}. Wenn sie aktiv ist, werden Personen-, Fahrzeug- und Tracker-Verläufe lokal zu Aufenthalten und Routen verdichtet.",
         "guidance_lookback": "Rückblickfenster: {value} Tage. Erhöhe den Wert, wenn du längere Historien für Bewegungen oder Laufzeittrends brauchst.",
-        "guidance_points": "Geopunkt-Limit: {value}. So viele Verlaufspunkte werden maximal pro Person für die Karte behalten.",
+        "guidance_points": "Geopunkt-Limit: {value}. So viele Verlaufspunkte werden maximal pro verfolgter Entität für die Karte behalten.",
+        "guidance_interval": "Es gibt kein festes Polling-Intervall des Add-ons. Die Routen nutzen die in Home Assistant aufgezeichnete Historie der letzten {days} Tage und behalten bis zu {points} signifikante Ortsänderungen pro verfolgter Entität.",
         "guidance_reports": "Wenn ein Report veraltet wirkt, starte einen neuen Scan und öffne den Bericht danach erneut.",
         "message_loaded": "Die letzte Scan-Zusammenfassung wurde von der Festplatte geladen.",
         "message_no_scan": "Es wurde noch kein Scan gestartet.",
@@ -369,9 +383,12 @@ def build_metric_cards(language: str, settings: Mapping[str, object], summary: d
         },
         {
             "title": text["metric_people_title"],
-            "value": geolocation_report.get("summary", {}).get("people_tracked", 0),
+            "value": geolocation_report.get("summary", {}).get(
+                "tracked_entities",
+                geolocation_report.get("summary", {}).get("people_tracked", 0),
+            ),
             "description": text["metric_people_description"],
-            "detail": "",
+            "detail": _tracked_entities_detail(language, geolocation_report.get("summary", {})),
         },
     ]
 
@@ -468,6 +485,10 @@ def build_guidance_items(language: str, settings: Mapping[str, object]) -> list[
         ),
         text["guidance_lookback"].format(value=settings.get("lookback_days", 7)),
         text["guidance_points"].format(value=settings.get("geolocation_point_limit", 300)),
+        text["guidance_interval"].format(
+            days=settings.get("lookback_days", 7),
+            points=settings.get("geolocation_point_limit", 300),
+        ),
         text["guidance_reports"],
     ]
 
@@ -480,6 +501,7 @@ def build_people_view(language: str, geolocation_report: dict) -> list[dict]:
         people_view.append(
             {
                 **person,
+                "kind_label": localize_kind(language, str(person.get("kind", "tracker"))),
                 "current_state_label": localize_entity_state(language, str(person.get("current_state", "unknown"))),
                 "visited_places_label": [
                     localize_entity_state(language, str(place))
@@ -540,3 +562,30 @@ def localize_entity_state(language: str, state: str) -> str:
             "unavailable": "Nicht verfügbar",
         }.get(state, state)
     return state
+
+
+def localize_kind(language: str, kind: str) -> str:
+    """Translate the semantic route item kind for timeline cards."""
+
+    text = get_text(language)
+    return {
+        "person": text["kind_person"],
+        "vehicle": text["kind_vehicle"],
+        "tracker": text["kind_tracker"],
+    }.get(kind, kind)
+
+
+def _tracked_entities_detail(language: str, summary: Mapping[str, object]) -> str:
+    """Return a short breakdown of tracked entity kinds for the metric card."""
+
+    if language == "de":
+        return (
+            f"Personen: {summary.get('people_tracked', 0)} | "
+            f"Fahrzeuge: {summary.get('vehicle_trackers', 0)} | "
+            f"Tracker: {summary.get('extra_trackers', 0)}"
+        )
+    return (
+        f"People: {summary.get('people_tracked', 0)} | "
+        f"Vehicles: {summary.get('vehicle_trackers', 0)} | "
+        f"Trackers: {summary.get('extra_trackers', 0)}"
+    )

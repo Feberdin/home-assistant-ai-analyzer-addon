@@ -64,15 +64,21 @@ def test_geolocation_analyzer_builds_people_stays_and_map() -> None:
 
     report = analyze_geolocation(settings, snapshot)
 
+    assert report["summary"]["tracked_entities"] == 1
     assert report["summary"]["people_tracked"] == 1
+    assert report["summary"]["vehicle_trackers"] == 0
     assert report["summary"]["timeline_points"] == 3
     assert report["people"][0]["name"] == "Alice"
+    assert report["people"][0]["kind"] == "person"
     assert len(report["people"][0]["stays"]) == 3
     assert report["people"][0]["stays"][0]["duration_minutes"] == 60
     assert report["people"][0]["stays"][1]["duration_minutes"] == 90
+    assert report["people"][0]["route_point_count"] == 3
+    assert report["people"][0]["route_distance_km"] > 0
     assert "home" in report["people"][0]["visited_places"]
     assert report["people"][0]["openstreetmap_url"]
     assert report["map"]["people"][0]["polyline"]
     assert report["map"]["people"][0]["path"][0]["latitude"] == 52.5
     assert report["map"]["center"]["latitude"] > 52.50
+    assert report["ai_summary"][0]["route_distance_km"] > 0
     assert "latitude" not in report["ai_summary"][0]["stays"][0]

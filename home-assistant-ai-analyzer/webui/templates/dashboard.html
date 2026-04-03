@@ -541,6 +541,7 @@ Debugging: If wording or values look wrong, inspect the localized UI context and
               <article class="person-card">
                 <h3>{{ person.get("name") }}</h3>
                 <p>
+                  <span class="pill">{{ person.get("kind_label", person.get("kind", "tracker")) }}</span>
                   <span class="pill">
                     <span class="legend-dot" style="background: {{ person.get('color', '#0f766e') }}"></span>
                     {{ ui.current_label }}: {{ person.get("current_state_label", person.get("current_state", "unknown")) }}
@@ -552,6 +553,11 @@ Debugging: If wording or values look wrong, inspect the localized UI context and
                 <p>
                   {{ ui.known_places_label }}:
                   {{ person.get("visited_places_label", [])|join(", ") or ui.no_known_places }}
+                </p>
+                <p class="muted">
+                  {{ ui.route_summary_label }}:
+                  <span class="pill">{{ person.get("route_point_count", 0) }} {{ ui.route_points_label }}</span>
+                  <span class="pill">{{ person.get("route_distance_km", 0.0) }} {{ ui.route_distance_label }}</span>
                 </p>
                 {% if person.get("openstreetmap_url") %}
                   <p><a class="link" href="{{ person.get('openstreetmap_url') }}" target="_blank" rel="noreferrer">{{ ui.open_osm_label }}</a></p>

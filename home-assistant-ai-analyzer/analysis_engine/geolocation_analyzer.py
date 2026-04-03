@@ -81,10 +81,15 @@ def analyze_geolocation(settings: AppSettings, runtime_snapshot: RuntimeSnapshot
     return {
         "summary": {
             "enabled": True,
-            "people_tracked": len(people),
+            "tracked_entities": len(people),
+            "people_tracked": len([person for person in people if _person_kind(person) == "person"]),
+            "vehicle_trackers": len([person for person in people if _person_kind(person) == "vehicle"]),
+            "extra_trackers": len([person for person in people if _person_kind(person) == "tracker"]),
             "timeline_points": total_points,
             "places_seen": len(all_places),
             "lookback_days": settings.lookback_days,
+            "point_limit": settings.geolocation_point_limit,
+            "sampling_model": "significant_changes_only",
         },
         "warnings": warnings,
         "people": people,
@@ -113,6 +118,7 @@ def _build_person_report(candidate: dict, history_events: list[dict], color: str
         "entity_id": candidate["entity_id"],
         "name": candidate["name"],
         "domain": candidate["domain"],
+        "kind": _person_kind(candidate),
         "current_state": current.get("state", candidate.get("state", "unknown")),
         "current_latitude": current_lat,
         "current_longitude": current_lon,
@@ -122,6 +128,8 @@ def _build_person_report(candidate: dict, history_events: list[dict], color: str
         "color": color,
         "timeline": timeline,
         "stays": stays,
+        "route_distance_km": _calculate_route_distance_km(timeline),
+        "route_point_count": len([point for point in timeline if point.get("latitude") is not None and point.get("longitude") is not None]),
         "visited_places": sorted({stay["place"] for stay in stays if stay["place"]}),
         "openstreetmap_url": _build_openstreetmap_url(current_lat, current_lon),
     }
@@ -203,6 +211,25 @@ def _duration_minutes(start_text: str, end_text: str) -> int | None:
         return max(0, int((end - start).total_seconds() // 60))
     except ValueError:
         return None
+
+
+def _calculate_route_distance_km(events: list[dict]) -> float:
+    """Approximate route length from consecutive coordinate points using the Haversine formula."""
+
+    route_points = [
+        (point.get("latitude"), point.get("longitude"))
+        for point in events
+        if point.get("latitude") is not None and point.get("longitude") is not None
+    ]
+    if len(route_points) < 2:
+        return 0.0
+
+    distance = 0.0
+    for index in range(1, len(route_points)):
+        previous = route_points[index - 1]
+        current = route_points[index]
+        distance += _haversine_km(previous[0], previous[1], current[0], current[1])
+    return round(distance, 2)
 
 
 def _build_map_model(people: list[dict], point_limit: int) -> dict:
@@ -306,8 +333,10 @@ def _build_ai_summary(person: dict) -> dict:
     return {
         "entity_id": person["entity_id"],
         "name": person["name"],
+        "kind": _person_kind(person),
         "current_state": person["current_state"],
         "current_when": person["current_when"],
+        "route_distance_km": person.get("route_distance_km", 0.0),
         "visited_places": person["visited_places"][:20],
         "stays": [
             {
@@ -327,6 +356,32 @@ def _build_openstreetmap_url(latitude: float | None, longitude: float | None) ->
     if latitude is None or longitude is None:
         return None
     return f"https://www.openstreetmap.org/?mlat={latitude}&mlon={longitude}#map=15/{latitude}/{longitude}"
+
+
+def _haversine_km(lat_a: float, lon_a: float, lat_b: float, lon_b: float) -> float:
+    """Return the great-circle distance in kilometers between two latitude/longitude points."""
+
+    from math import asin, cos, radians, sin, sqrt
+
+    lat_a_rad = radians(lat_a)
+    lon_a_rad = radians(lon_a)
+    lat_b_rad = radians(lat_b)
+    lon_b_rad = radians(lon_b)
+
+    delta_lat = lat_b_rad - lat_a_rad
+    delta_lon = lon_b_rad - lon_a_rad
+    haversine = sin(delta_lat / 2) ** 2 + cos(lat_a_rad) * cos(lat_b_rad) * sin(delta_lon / 2) ** 2
+    return 6371.0 * 2 * asin(sqrt(haversine))
+
+
+def _person_kind(item: dict) -> str:
+    """Return a stable route item kind even for older candidate shapes without the explicit kind field."""
+
+    if item.get("kind") in {"person", "vehicle", "tracker"}:
+        return str(item["kind"])
+    if str(item.get("domain", "")) == "person" or str(item.get("entity_id", "")).startswith("person."):
+        return "person"
+    return "tracker"
 
 
 def _to_float(value) -> float | None:
