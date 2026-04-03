@@ -2,6 +2,10 @@
 
 # Changelog
 
+## 0.3.1 - 2026-04-03
+
+- Fixed the dashboard `Internal Server Error` caused by the wrong `TemplateResponse` argument order with the installed FastAPI/Starlette version
+
 ## 0.3.0 - 2026-04-03
 
 - Added opt-in geolocation analysis for Home Assistant `person.*` entities and GPS-capable trackers

@@ -112,6 +112,7 @@ async def dashboard(request: Request) -> HTMLResponse:
     results = summary.get("results", {}) if isinstance(summary, dict) else {}
     geolocation_report = read_json(Path(SETTINGS.output_path) / "geolocation_history.json", default={})
     return TEMPLATES.TemplateResponse(
+        request,
         "dashboard.html",
         {
             "request": request,
