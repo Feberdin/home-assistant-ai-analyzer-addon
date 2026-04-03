@@ -14,9 +14,12 @@ The target audience is not only developers. The architecture is documented so th
 
 ## Current Status
 
-This repository currently contains the complete architecture concept and implementation roadmap.
+This repository now contains:
 
-It does **not** yet contain a runnable add-on or Python implementation.
+- the complete architecture concept
+- a minimal but installable Home Assistant app/add-on
+- a Python analysis engine with a small ingress dashboard
+- tests for the core analysis logic
 
 ## Features Planned
 
@@ -36,18 +39,22 @@ It does **not** yet contain a runnable add-on or Python implementation.
 - Implementation roadmap: [docs/IMPLEMENTATION_ROADMAP.md](./docs/IMPLEMENTATION_ROADMAP.md)
 - Planned repository structure: [docs/REPOSITORY_STRUCTURE.md](./docs/REPOSITORY_STRUCTURE.md)
 - Security expectations: [SECURITY.md](./SECURITY.md)
+- Install and usage guide: [home-assistant-ai-analyzer/DOCS.md](./home-assistant-ai-analyzer/DOCS.md)
 
 ## Quickstart
 
-Because this repository is currently an architecture concept, the quickest way to start is:
+To install this through Home Assistant Apps/Add-ons:
 
-1. Read [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)
-2. Review [docs/IMPLEMENTATION_ROADMAP.md](./docs/IMPLEMENTATION_ROADMAP.md)
-3. Use [docs/REPOSITORY_STRUCTURE.md](./docs/REPOSITORY_STRUCTURE.md) as the baseline for implementation
+1. Open Home Assistant `Settings > Apps > App Store`
+2. Add the repository URL `https://github.com/Feberdin/home-assistant-ai-analyzer-addon`
+3. Install `Home Assistant AI Analyzer`
+4. Open the add-on and review the options
+5. Start the add-on
+6. Open the web UI and run a scan
 
 ## Configuration
 
-Planned add-on configuration topics are described in the architecture document and include:
+Supported add-on configuration topics include:
 
 - scan mode
 - runtime lookback window
@@ -60,13 +67,14 @@ Planned add-on configuration topics are described in the architecture document a
 
 Common situations at this stage:
 
-- If you expect runnable code: this repository intentionally documents the concept first.
-- If you want to start implementation: use the roadmap phases in [docs/IMPLEMENTATION_ROADMAP.md](./docs/IMPLEMENTATION_ROADMAP.md).
-- If you want to review security assumptions: start with [SECURITY.md](./SECURITY.md).
+- If the add-on does not appear in the App Store: verify that Home Assistant can access [repository.yaml](./repository.yaml).
+- If the add-on starts but the dashboard is empty: check whether `/homeassistant` is mounted and readable.
+- If runtime analysis is unavailable: verify Supervisor API access and the Home Assistant API proxy.
+- If you want the full architecture background: start with [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).
 
 ## Logs And Debugging
 
-The future add-on is planned to expose:
+The add-on is designed to expose:
 
 - structured add-on logs with `run_id`
 - phase-by-phase scan progress
@@ -82,4 +90,4 @@ The future add-on is planned to expose:
 
 ## License Notice
 
-No final license has been selected yet. This should be decided before implementation starts.
+No final license has been selected yet. This should be decided before a public release.

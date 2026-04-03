@@ -1,0 +1,7 @@
+# Purpose: Home Assistant app repository metadata for the Feberdin add-on source.
+# Input/Output: Read by Home Assistant when the GitHub repository is added as a third-party app source.
+# Invariants: Keep the URL in sync with the real GitHub repository and keep the name human-readable.
+# Debugging: If the repository does not appear in the App Store, validate this file first.
+name: "Feberdin Home Assistant Apps"
+url: "https://github.com/Feberdin/home-assistant-ai-analyzer-addon"
+maintainer: "Feberdin"

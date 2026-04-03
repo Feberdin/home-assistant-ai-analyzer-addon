@@ -1,0 +1,53 @@
+# Purpose: Human-readable labels for the Home Assistant add-on configuration screen.
+# Input/Output: Read by Home Assistant to render option labels and descriptions in the UI.
+# Invariants: Translation keys must match config.yaml schema keys.
+# Debugging: If a field label is missing in the UI, verify the key names in this file first.
+configuration:
+  base_config_path:
+    name: Base config path
+    description: Mounted Home Assistant configuration directory inside the add-on container.
+  output_path:
+    name: Output path
+    description: Directory where analysis reports are written.
+  log_level:
+    name: Log level
+    description: Verbosity of the add-on logs.
+  scan_mode:
+    name: Scan mode
+    description: Quick uses static config only, full adds runtime API, deep also enables advanced analysis paths.
+  lookback_days:
+    name: Lookback days
+    description: Number of days reserved for runtime lookback windows.
+  run_on_startup:
+    name: Run on startup
+    description: Start one scan automatically when the add-on boots.
+  enable_runtime_analysis:
+    name: Enable runtime analysis
+    description: Query Home Assistant runtime APIs through the Supervisor proxy.
+  enable_recorder_db:
+    name: Enable recorder database
+    description: Allow optional recorder database inspection when the database file is locally available.
+  recorder_db_path:
+    name: Recorder database path
+    description: Default SQLite recorder database path inside the mounted Home Assistant config.
+  enable_ai:
+    name: Enable AI suggestions
+    description: Allow optional outbound requests to a configured LLM provider.
+  llm_base_url:
+    name: LLM base URL
+    description: OpenAI-compatible chat completion endpoint URL.
+  llm_model:
+    name: LLM model
+    description: Model name sent to the AI provider.
+  llm_api_key:
+    name: LLM API key
+    description: API key used for outbound AI requests.
+  llm_max_findings:
+    name: Max AI findings
+    description: Maximum number of findings forwarded to the AI model.
+  max_history_entities:
+    name: Max history entities
+    description: Upper bound for future and current targeted runtime history analysis.
+  exclude_paths:
+    name: Excluded paths
+    description: Paths below the mounted config directory that should be skipped during scanning.

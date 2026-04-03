@@ -1,15 +1,11 @@
-# Planned Add-on Directory
+# Home Assistant AI Analyzer
 
-This folder is reserved for the future Home Assistant add-on implementation.
+Analyze your Home Assistant installation and generate structured findings for:
 
-It exists now so the repository structure is visible early and contributors know where the add-on-specific files will live.
+- automations and scripts
+- entities and references
+- templates and performance risks
+- integrations and runtime observations
+- improvement suggestions and optional AI proposals
 
-The first implementation phase should add:
-
-- `config.yaml`
-- `Dockerfile`
-- `run.sh`
-- `pyproject.toml`
-- `analysis_engine/`
-- `webui/`
-- `tests/`
+The add-on provides a small ingress dashboard and writes machine-readable reports to `/data/analysis`.

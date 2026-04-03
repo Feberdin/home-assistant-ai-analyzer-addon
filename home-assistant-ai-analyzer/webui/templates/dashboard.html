@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<!--
+Purpose: Render the add-on dashboard for scans, summaries, and report access.
+Input/Output: Input is the Jinja context from analysis_engine.app; output is the ingress HTML page.
+Invariants: The page must stay readable without JavaScript and must expose the latest status clearly.
+Debugging: If values are missing, inspect the Jinja context keys passed in by the dashboard route.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Home Assistant AI Analyzer</title>
+    <style>
+      :root {
+        --bg: #f3efe6;
+        --panel: rgba(255, 251, 244, 0.92);
+        --ink: #1d2b2f;
+        --muted: #526268;
+        --accent: #0f766e;
+        --accent-strong: #155e75;
+        --warning: #c2410c;
+        --ok: #166534;
+        --error: #991b1b;
+        --line: rgba(29, 43, 47, 0.12);
+        --shadow: 0 18px 40px rgba(47, 66, 73, 0.12);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Avenir Next", "Segoe UI", sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at top left, rgba(15, 118, 110, 0.16), transparent 35%),
+          radial-gradient(circle at top right, rgba(194, 65, 12, 0.12), transparent 28%),
+          linear-gradient(180deg, #f8f5ef 0%, var(--bg) 100%);
+        min-height: 100vh;
+      }
+
+      .shell {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 32px 20px 48px;
+      }
+
+      .hero {
+        display: grid;
+        gap: 18px;
+        grid-template-columns: 1.3fr 0.9fr;
+        margin-bottom: 22px;
+      }
+
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        padding: 22px;
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(6px);
+      }
+
+      h1, h2, h3 {
+        margin: 0 0 12px;
+        line-height: 1.15;
+      }
+
+      h1 {
+        font-size: clamp(2rem, 3vw, 3.1rem);
+        letter-spacing: -0.04em;
+      }
+
+      h2 {
+        font-size: 1.05rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+      }
+
+      p, li {
+        color: var(--muted);
+        line-height: 1.55;
+      }
+
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        font-weight: 700;
+        background: rgba(21, 94, 117, 0.08);
+      }
+
+      .status.success { color: var(--ok); background: rgba(22, 101, 52, 0.1); }
+      .status.running { color: var(--accent-strong); background: rgba(21, 94, 117, 0.12); }
+      .status.error { color: var(--error); background: rgba(153, 27, 27, 0.1); }
+
+      .button {
+        appearance: none;
+        border: 0;
+        border-radius: 999px;
+        padding: 12px 18px;
+        font: inherit;
+        font-weight: 700;
+        color: white;
+        background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+        cursor: pointer;
+      }
+
+      .grid {
+        display: grid;
+        gap: 18px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        margin-bottom: 22px;
+      }
+
+      .metric {
+        font-size: 2rem;
+        font-weight: 800;
+        margin-bottom: 6px;
+      }
+
+      .reports {
+        display: grid;
+        gap: 12px;
+      }
+
+      .report-link {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        text-decoration: none;
+        color: var(--ink);
+        padding: 14px 16px;
+        border-radius: 16px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.55);
+      }
+
+      .cols {
+        display: grid;
+        gap: 18px;
+        grid-template-columns: 1fr 1fr;
+      }
+
+      code {
+        font-family: "SFMono-Regular", "Cascadia Code", monospace;
+        font-size: 0.92em;
+      }
+
+      .muted {
+        color: var(--muted);
+      }
+
+      @media (max-width: 900px) {
+        .hero,
+        .grid,
+        .cols {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <article class="card">
+          <h2>Analyzer</h2>
+          <h1>Home Assistant AI Analyzer</h1>
+          <p>
+            Scan the mounted Home Assistant configuration, compare it with runtime data,
+            and generate explainable findings before changing anything live.
+          </p>
+          <form action="/scan" method="post">
+            <button class="button" type="submit">Run Scan</button>
+          </form>
+        </article>
+
+        <aside class="card">
+          <h2>Current Status</h2>
+          <div class="status {{ state.status }}">
+            <span>{{ state.status|upper }}</span>
+          </div>
+          <p id="status-message">{{ state.message }}</p>
+          <p class="muted">
+            Latest run:
+            <code>{{ summary.get("run_id", "not yet available") }}</code>
+          </p>
+          <p class="muted">
+            Scan mode:
+            <code>{{ settings["scan_mode"] }}</code>
+          </p>
+        </aside>
+      </section>
+
+      <section class="grid">
+        <article class="card">
+          <h2>YAML Files</h2>
+          <div class="metric">{{ summary.get("parser", {}).get("yaml_files_scanned", 0) }}</div>
+          <p>Scanned below <code>{{ settings["base_config_path"] }}</code></p>
+        </article>
+        <article class="card">
+          <h2>Automations</h2>
+          <div class="metric">{{ summary.get("parser", {}).get("automations", 0) }}</div>
+          <p>Normalized into one dependency graph for reporting and UI use.</p>
+        </article>
+        <article class="card">
+          <h2>Suggestions</h2>
+          <div class="metric">{{ results.get("suggestions", 0) }}</div>
+          <p>Prioritized actions based on local findings and optional AI proposals.</p>
+        </article>
+      </section>
+
+      <section class="cols">
+        <article class="card">
+          <h2>Reports</h2>
+          <div class="reports">
+            {% for report_name in report_names %}
+              <a class="report-link" href="/api/report/{{ report_name }}" target="_blank" rel="noreferrer">
+                <span>{{ report_name }}</span>
+                <span>Open</span>
+              </a>
+            {% endfor %}
+          </div>
+        </article>
+
+        <article class="card">
+          <h2>Latest Findings</h2>
+          <p>
+            Missing referenced entities:
+            <code>{{ results.get("unused_entities", {}).get("missing_referenced_entities", 0) }}</code>
+          </p>
+          <p>
+            Expensive templates:
+            <code>{{ results.get("template_performance", {}).get("expensive_templates", 0) }}</code>
+          </p>
+          <p>
+            Automation issues:
+            <code>{{ results.get("automation_issues", {}).get("issues_found", 0) }}</code>
+          </p>
+          <p>
+            Runtime warnings:
+            <code>{{ summary.get("runtime", {}).get("warnings", [])|length }}</code>
+          </p>
+        </article>
+      </section>
+    </main>
+
+    <script>
+      async function refreshStatus() {
+        try {
+          const response = await fetch("/api/status", { cache: "no-store" });
+          const data = await response.json();
+          document.getElementById("status-message").textContent = data.message;
+        } catch (error) {
+          console.debug("Status refresh failed", error);
+        }
+      }
+
+      window.setInterval(refreshStatus, 5000);
+    </script>
+  </body>
+</html>
