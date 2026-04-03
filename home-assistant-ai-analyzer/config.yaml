@@ -3,7 +3,7 @@
 # Invariants: Keep slug unique, ingress port aligned with the web server, and paths read-only where possible.
 # Debugging: If installation or startup fails, validate this file first in Home Assistant and the add-on logs.
 name: "Home Assistant AI Analyzer"
-version: "0.2.1"
+version: "0.3.0"
 slug: "home_assistant_ai_analyzer"
 description: >-
   Analyze Home Assistant configuration, automations, templates, entities,
@@ -33,14 +33,18 @@ options:
   lookback_days: 7
   run_on_startup: true
   enable_runtime_analysis: true
+  enable_geolocation_analysis: true
   enable_recorder_db: false
   recorder_db_path: "/homeassistant/home-assistant_v2.db"
   enable_ai: false
+  enable_ai_geolocation_context: false
   llm_base_url: "https://api.openai.com/v1/chat/completions"
   llm_model: "gpt-4.1-mini"
   llm_api_key: ""
   llm_max_findings: 5
   max_history_entities: 20
+  geolocation_entity_limit: 10
+  geolocation_point_limit: 300
   exclude_paths:
     - ".storage"
     - "deps"
@@ -53,13 +57,17 @@ schema:
   lookback_days: "int(1,30)"
   run_on_startup: bool
   enable_runtime_analysis: bool
+  enable_geolocation_analysis: bool
   enable_recorder_db: bool
   recorder_db_path: "str?"
   enable_ai: bool
+  enable_ai_geolocation_context: bool
   llm_base_url: "url?"
   llm_model: "str?"
   llm_api_key: "password?"
   llm_max_findings: "int(1,20)"
   max_history_entities: "int(1,100)"
+  geolocation_entity_limit: "int(1,50)"
+  geolocation_point_limit: "int(10,1000)"
   exclude_paths:
     - str

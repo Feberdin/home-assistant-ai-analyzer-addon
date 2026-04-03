@@ -20,7 +20,7 @@ from pathlib import Path
 import logging
 import os
 import sqlite3
-from urllib.parse import quote
+from urllib.parse import quote, urlencode
 
 import httpx
 
@@ -64,6 +64,17 @@ def collect_runtime(settings: AppSettings, _parse_result: ConfigParseResult) -> 
             snapshot.warnings,
         )[:4000]
         snapshot.logbook_entries = _get_logbook(client, settings, snapshot.warnings)
+        snapshot.geolocation_entities = _collect_geolocation_entities(
+            snapshot.states,
+            settings.geolocation_entity_limit,
+        )
+        if settings.enable_geolocation_analysis and snapshot.geolocation_entities:
+            snapshot.geolocation_history = _get_geolocation_history(
+                client,
+                settings,
+                snapshot.geolocation_entities[: settings.geolocation_entity_limit],
+                snapshot.warnings,
+            )
         snapshot.available = True
     finally:
         client.close()
@@ -143,3 +154,101 @@ def _maybe_collect_recorder(settings: AppSettings, snapshot: RuntimeSnapshot) ->
     except Exception as err:  # noqa: BLE001
         LOGGER.warning("Recorder DB inspection failed: %s", err)
         snapshot.warnings.append(f"Recorder DB inspection failed: {err}")
+
+
+def _collect_geolocation_entities(states: dict[str, dict], limit: int) -> list[dict]:
+    """Pick person entities first and fall back to GPS-capable device trackers when needed."""
+
+    people = []
+    fallback_trackers = []
+
+    for entity_id, state in sorted(states.items()):
+        if entity_id.startswith("person."):
+            people.append(_state_to_geolocation_candidate(entity_id, state))
+            continue
+
+        if entity_id.startswith("device_tracker.") and _state_has_coordinates(state):
+            fallback_trackers.append(_state_to_geolocation_candidate(entity_id, state))
+
+    candidates = people if people else fallback_trackers
+    return [candidate for candidate in candidates[:limit] if candidate]
+
+
+def _state_to_geolocation_candidate(entity_id: str, state: dict) -> dict:
+    """Normalize one runtime state into a geolocation-capable entity record."""
+
+    attributes = state.get("attributes", {})
+    return {
+        "entity_id": entity_id,
+        "name": attributes.get("friendly_name", entity_id),
+        "domain": entity_id.split(".", 1)[0],
+        "state": state.get("state", "unknown"),
+        "latitude": _safe_float(attributes.get("latitude")),
+        "longitude": _safe_float(attributes.get("longitude")),
+        "source_type": attributes.get("source_type", ""),
+        "accuracy": attributes.get("gps_accuracy"),
+        "last_changed": state.get("last_changed", ""),
+    }
+
+
+def _state_has_coordinates(state: dict) -> bool:
+    """Return true when the runtime state includes a usable latitude and longitude pair."""
+
+    attributes = state.get("attributes", {})
+    return _safe_float(attributes.get("latitude")) is not None and _safe_float(attributes.get("longitude")) is not None
+
+
+def _safe_float(value) -> float | None:
+    """Convert coordinate-like values to float when possible."""
+
+    try:
+        if value is None or value == "":
+            return None
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _get_geolocation_history(
+    client: httpx.Client,
+    settings: AppSettings,
+    entities: list[dict],
+    warnings: list[str],
+) -> dict[str, list[dict]]:
+    """Fetch bounded history for person or GPS-capable tracker entities."""
+
+    if not entities:
+        return {}
+
+    start = datetime.now(timezone.utc) - timedelta(days=settings.lookback_days)
+    start_text = quote(start.isoformat(), safe="")
+    end_text = datetime.now(timezone.utc).isoformat()
+    entity_ids = ",".join(item["entity_id"] for item in entities)
+    params = urlencode(
+        {
+            "filter_entity_id": entity_ids,
+            "end_time": end_text,
+        },
+        doseq=False,
+    )
+    params = f"{params}&significant_changes_only"
+
+    url = f"{settings.ha_api_url}/history/period/{start_text}?{params}"
+    payload = _get_json(client, url, warnings)
+    if not isinstance(payload, list):
+        warnings.append("Geolocation history endpoint returned an unexpected payload shape.")
+        return {}
+
+    history: dict[str, list[dict]] = {item["entity_id"]: [] for item in entities}
+    for series in payload:
+        if not isinstance(series, list):
+            continue
+        current_entity_id = None
+        for event in series:
+            if not isinstance(event, dict):
+                continue
+            current_entity_id = event.get("entity_id", current_entity_id)
+            if not current_entity_id:
+                continue
+            history.setdefault(current_entity_id, []).append(event)
+    return history

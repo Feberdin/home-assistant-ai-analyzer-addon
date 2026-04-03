@@ -2,6 +2,13 @@
 
 # Changelog
 
+## 0.3.0 - 2026-04-03
+
+- Added opt-in geolocation analysis for Home Assistant `person.*` entities and GPS-capable trackers
+- Added `geolocation_history.json` with timeline, stays, visited places, and local map projection data
+- Added a dashboard geolocation map view with per-person timeline cards and OpenStreetMap deep links
+- Added a separate `enable_ai_geolocation_context` option so location summaries are only shared with AI when explicitly enabled
+
 ## 0.2.1 - 2026-04-03
 
 - Fixed Home Assistant app image builds by installing Python dependencies inside a dedicated virtual environment

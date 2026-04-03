@@ -62,6 +62,7 @@ analysis/
   unused_entities.json
   template_performance.json
   integration_usage.json
+  geolocation_history.json
   automation_graph.json
   suggestions.md
   proposals/

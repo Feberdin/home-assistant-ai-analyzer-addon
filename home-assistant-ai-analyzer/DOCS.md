@@ -19,6 +19,8 @@ The add-on is designed to be understandable and safe:
 - detect missing referenced entities
 - flag likely expensive templates
 - summarize runtime API availability and current state inventory
+- build a geolocation timeline for people and GPS-capable trackers
+- show recent movement on a local coordinate map and OpenStreetMap links
 - generate structured JSON and Markdown reports
 - expose a dashboard through Ingress
 
@@ -42,13 +44,17 @@ The add-on is designed to be understandable and safe:
 - `lookback_days`: Runtime lookback window for future and current history-based analysis
 - `run_on_startup`: Run one scan automatically after the add-on starts
 - `enable_runtime_analysis`: Use Home Assistant API runtime data
+- `enable_geolocation_analysis`: Build a per-person location timeline and map from Home Assistant runtime history
 - `enable_recorder_db`: Allow optional recorder database inspection
 - `recorder_db_path`: Default SQLite recorder path
 - `enable_ai`: Enable optional LLM proposal generation
+- `enable_ai_geolocation_context`: Allow summarized people location timelines to be included in AI prompts
 - `llm_base_url`: OpenAI-compatible chat completion endpoint
 - `llm_model`: LLM model name
 - `llm_api_key`: API key for the chosen LLM service
 - `max_history_entities`: Reserved limit for bounded runtime history analysis
+- `geolocation_entity_limit`: Maximum number of tracked people or GPS trackers in one scan
+- `geolocation_point_limit`: Maximum number of map points rendered per person
 - `exclude_paths`: Paths below the config directory that should not be scanned
 
 ## Generated Reports
@@ -59,6 +65,7 @@ The add-on writes these files to `/data/analysis`:
 - `unused_entities.json`
 - `template_performance.json`
 - `integration_usage.json`
+- `geolocation_history.json`
 - `automation_graph.json`
 - `suggestions.md`
 - `run_summary.json`
@@ -70,6 +77,7 @@ The add-on writes these files to `/data/analysis`:
 3. Click `Run Scan`
 4. Open the generated reports from the dashboard
 5. Review `suggestions.md` first for the operator-friendly summary
+6. Review the location map and per-person timeline cards if geolocation analysis is enabled
 
 ## Troubleshooting
 
@@ -84,6 +92,13 @@ The add-on writes these files to `/data/analysis`:
 - Confirm the add-on has `homeassistant_api: true`
 - Check whether the supervisor proxy is reachable from the container
 - Review the `runtime` warnings in `run_summary.json`
+
+### Geolocation map is empty
+
+- Confirm `enable_geolocation_analysis` is enabled
+- Ensure Home Assistant has `person.*` entities or GPS-capable `device_tracker.*` entities with latitude and longitude
+- Increase `lookback_days` if you expect older movement history
+- Review `geolocation_history.json` for warnings and entity counts
 
 ### Recorder analysis does not run
 
@@ -111,11 +126,13 @@ For deeper debugging, inspect:
 
 - `/data/analysis/run_summary.json`
 - `/data/analysis/suggestions.md`
+- `/data/analysis/geolocation_history.json`
 - add-on logs in Home Assistant
 
 ## Security Notes
 
 - The add-on does not write into the Home Assistant config directory
 - Secrets are masked before AI requests
+- Geolocation stays local unless `enable_ai_geolocation_context` is explicitly enabled
 - AI-generated content is treated as a draft proposal
 - Runtime requests are bounded and fail safely

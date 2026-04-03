@@ -30,7 +30,8 @@ The system should analyze a Home Assistant installation from three angles:
 
 1. Static configuration analysis
 2. Runtime and API-based analysis
-3. Optional AI-assisted optimization proposal generation
+3. People and geolocation behavior analysis
+4. Optional AI-assisted optimization proposal generation
 
 To keep the architecture understandable and testable, the add-on should use a layered model:
 
@@ -692,6 +693,7 @@ The system must produce at least:
 - `analysis/unused_entities.json`
 - `analysis/template_performance.json`
 - `analysis/integration_usage.json`
+- `analysis/geolocation_history.json`
 - `analysis/automation_graph.json`
 - `analysis/suggestions.md`
 

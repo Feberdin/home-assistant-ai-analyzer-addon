@@ -29,6 +29,7 @@ This repository now contains:
 - Detect unused, missing, and noisy entities
 - Detect expensive templates and trigger-pattern issues
 - Inspect runtime data through the Home Assistant API
+- Track people geolocation history and render local movement maps
 - Optionally inspect recorder database data
 - Generate structured findings and human-readable suggestions
 - Optionally ask an LLM to propose improved automations
@@ -58,6 +59,7 @@ Supported add-on configuration topics include:
 
 - scan mode
 - runtime lookback window
+- geolocation analysis and AI geolocation sharing
 - recorder database access
 - AI provider settings
 - logging level

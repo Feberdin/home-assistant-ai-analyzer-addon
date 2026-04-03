@@ -23,6 +23,7 @@ from .automation_graph import build_automation_graph
 from .automation_issues import analyze_automation_issues
 from .config_parser import parse_configuration
 from .entity_usage import analyze_entity_usage
+from .geolocation_analyzer import analyze_geolocation
 from .integration_analyzer import analyze_integrations
 from .models import AppSettings, ScanArtifacts
 from .report_writer import write_reports
@@ -50,12 +51,14 @@ def run_scan(settings: AppSettings) -> dict:
     unused_entities = analyze_entity_usage(parse_result, automation_graph, runtime_snapshot)
     automation_issues = analyze_automation_issues(parse_result, runtime_snapshot)
     integration_usage = analyze_integrations(parse_result, runtime_snapshot)
+    geolocation_history = analyze_geolocation(settings, runtime_snapshot)
     ai_proposals = maybe_generate_ai_proposals(
         settings,
         automation_issues,
         unused_entities,
         template_performance,
         integration_usage,
+        geolocation_history,
     )
 
     suggestions, suggestions_markdown = build_suggestions(
@@ -65,6 +68,7 @@ def run_scan(settings: AppSettings) -> dict:
         unused_entities=unused_entities,
         template_performance=template_performance,
         integration_usage=integration_usage,
+        geolocation_history=geolocation_history,
         runtime_warnings=runtime_snapshot.warnings + ai_proposals.get("warnings", []),
         ai_proposals=ai_proposals,
     )
@@ -88,6 +92,7 @@ def run_scan(settings: AppSettings) -> dict:
             "unused_entities": unused_entities.get("summary", {}),
             "template_performance": template_performance.get("summary", {}),
             "integration_usage": integration_usage.get("summary", {}),
+            "geolocation_history": geolocation_history.get("summary", {}),
             "suggestions": len(suggestions),
             "ai_proposals": len(ai_proposals.get("proposals", [])),
         },
@@ -100,6 +105,7 @@ def run_scan(settings: AppSettings) -> dict:
         unused_entities=unused_entities,
         template_performance=template_performance,
         integration_usage=integration_usage,
+        geolocation_history=geolocation_history,
         automation_graph=automation_graph,
         suggestions_markdown=suggestions_markdown,
         ai_proposals=ai_proposals,

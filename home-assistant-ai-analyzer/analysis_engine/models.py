@@ -31,14 +31,18 @@ class AppSettings:
     lookback_days: int = 7
     run_on_startup: bool = True
     enable_runtime_analysis: bool = True
+    enable_geolocation_analysis: bool = True
     enable_recorder_db: bool = False
     recorder_db_path: str = "/homeassistant/home-assistant_v2.db"
     enable_ai: bool = False
+    enable_ai_geolocation_context: bool = False
     llm_base_url: str = "https://api.openai.com/v1/chat/completions"
     llm_model: str = "gpt-4.1-mini"
     llm_api_key: str = ""
     llm_max_findings: int = 5
     max_history_entities: int = 20
+    geolocation_entity_limit: int = 10
+    geolocation_point_limit: int = 300
     exclude_paths: list[str] = field(default_factory=lambda: [".storage", "deps", "__pycache__"])
     ha_api_url: str = "http://supervisor/core/api"
 
@@ -61,14 +65,18 @@ class AppSettings:
             lookback_days=int(raw.get("lookback_days", 7)),
             run_on_startup=bool(raw.get("run_on_startup", True)),
             enable_runtime_analysis=bool(raw.get("enable_runtime_analysis", True)),
+            enable_geolocation_analysis=bool(raw.get("enable_geolocation_analysis", True)),
             enable_recorder_db=bool(raw.get("enable_recorder_db", False)),
             recorder_db_path=str(raw.get("recorder_db_path", "/homeassistant/home-assistant_v2.db")),
             enable_ai=bool(raw.get("enable_ai", False)),
+            enable_ai_geolocation_context=bool(raw.get("enable_ai_geolocation_context", False)),
             llm_base_url=str(raw.get("llm_base_url", "https://api.openai.com/v1/chat/completions")),
             llm_model=str(raw.get("llm_model", "gpt-4.1-mini")),
             llm_api_key=str(raw.get("llm_api_key", "")),
             llm_max_findings=int(raw.get("llm_max_findings", 5)),
             max_history_entities=int(raw.get("max_history_entities", 20)),
+            geolocation_entity_limit=int(raw.get("geolocation_entity_limit", 10)),
+            geolocation_point_limit=int(raw.get("geolocation_point_limit", 300)),
             exclude_paths=[str(item) for item in raw.get("exclude_paths", [".storage", "deps", "__pycache__"])],
         )
 
@@ -162,6 +170,8 @@ class RuntimeSnapshot:
     services: list[dict] = field(default_factory=list)
     error_log_excerpt: str = ""
     logbook_entries: list[dict] = field(default_factory=list)
+    geolocation_entities: list[dict] = field(default_factory=list)
+    geolocation_history: dict[str, list[dict]] = field(default_factory=dict)
     recorder_details: dict = field(default_factory=dict)
 
     def state_ids(self) -> set[str]:
@@ -180,6 +190,7 @@ class ScanArtifacts:
     unused_entities: dict
     template_performance: dict
     integration_usage: dict
+    geolocation_history: dict
     automation_graph: dict
     suggestions_markdown: str
     ai_proposals: dict

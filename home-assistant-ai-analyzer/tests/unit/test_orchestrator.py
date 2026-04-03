@@ -62,5 +62,6 @@ automation: !include automations.yaml
     assert (output_dir / "unused_entities.json").exists()
     assert (output_dir / "template_performance.json").exists()
     assert (output_dir / "integration_usage.json").exists()
+    assert (output_dir / "geolocation_history.json").exists()
     assert (output_dir / "automation_graph.json").exists()
     assert (output_dir / "suggestions.md").exists()

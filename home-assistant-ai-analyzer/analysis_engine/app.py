@@ -110,6 +110,7 @@ async def dashboard(request: Request) -> HTMLResponse:
 
     summary = SCAN_MANAGER.state.latest_summary
     results = summary.get("results", {}) if isinstance(summary, dict) else {}
+    geolocation_report = read_json(Path(SETTINGS.output_path) / "geolocation_history.json", default={})
     return TEMPLATES.TemplateResponse(
         "dashboard.html",
         {
@@ -118,11 +119,13 @@ async def dashboard(request: Request) -> HTMLResponse:
             "settings": SETTINGS.safe_dict(),
             "summary": summary,
             "results": results,
+            "geolocation_report": geolocation_report,
             "report_names": [
                 "automation_issues.json",
                 "unused_entities.json",
                 "template_performance.json",
                 "integration_usage.json",
+                "geolocation_history.json",
                 "automation_graph.json",
                 "suggestions.md",
                 "run_summary.json",
@@ -170,6 +173,7 @@ async def report(report_name: str):
         "unused_entities.json",
         "template_performance.json",
         "integration_usage.json",
+        "geolocation_history.json",
         "automation_graph.json",
         "suggestions.md",
         "run_summary.json",

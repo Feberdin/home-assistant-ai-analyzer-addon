@@ -113,7 +113,7 @@ Debugging: If values are missing, inspect the Jinja context keys passed in by th
       .grid {
         display: grid;
         gap: 18px;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(4, minmax(0, 1fr));
         margin-bottom: 22px;
       }
 
@@ -144,6 +144,88 @@ Debugging: If values are missing, inspect the Jinja context keys passed in by th
         display: grid;
         gap: 18px;
         grid-template-columns: 1fr 1fr;
+      }
+
+      .wide {
+        display: grid;
+        gap: 18px;
+        grid-template-columns: 1.3fr 0.9fr;
+        margin-top: 22px;
+      }
+
+      .map-shell {
+        border-radius: 20px;
+        border: 1px solid var(--line);
+        background:
+          linear-gradient(180deg, rgba(15, 118, 110, 0.08), rgba(255, 255, 255, 0.9)),
+          repeating-linear-gradient(
+            90deg,
+            rgba(82, 98, 104, 0.08) 0,
+            rgba(82, 98, 104, 0.08) 1px,
+            transparent 1px,
+            transparent 120px
+          ),
+          repeating-linear-gradient(
+            180deg,
+            rgba(82, 98, 104, 0.08) 0,
+            rgba(82, 98, 104, 0.08) 1px,
+            transparent 1px,
+            transparent 84px
+          );
+        overflow: hidden;
+      }
+
+      .map-caption {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px 14px 0;
+        font-size: 0.92rem;
+        color: var(--muted);
+      }
+
+      svg {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+
+      .person-list {
+        display: grid;
+        gap: 14px;
+      }
+
+      .person-card {
+        padding: 16px;
+        border-radius: 18px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.58);
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border-radius: 999px;
+        padding: 6px 10px;
+        background: rgba(15, 118, 110, 0.1);
+        color: var(--ink);
+        font-size: 0.92rem;
+        margin-right: 8px;
+        margin-bottom: 8px;
+      }
+
+      .legend-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        display: inline-block;
+      }
+
+      .link {
+        color: var(--accent-strong);
+        text-decoration: none;
+        font-weight: 700;
       }
 
       code {
@@ -212,6 +294,11 @@ Debugging: If values are missing, inspect the Jinja context keys passed in by th
           <div class="metric">{{ results.get("suggestions", 0) }}</div>
           <p>Prioritized actions based on local findings and optional AI proposals.</p>
         </article>
+        <article class="card">
+          <h2>People Tracked</h2>
+          <div class="metric">{{ geolocation_report.get("summary", {}).get("people_tracked", 0) }}</div>
+          <p>Derived from <code>person.*</code> entities first, then GPS-capable trackers if needed.</p>
+        </article>
       </section>
 
       <section class="cols">
@@ -246,6 +333,106 @@ Debugging: If values are missing, inspect the Jinja context keys passed in by th
             <code>{{ summary.get("runtime", {}).get("warnings", [])|length }}</code>
           </p>
         </article>
+      </section>
+
+      <section class="wide">
+        <article class="card">
+          <h2>Location Map</h2>
+          {% set geo_map = geolocation_report.get("map", {}) %}
+          {% if geo_map.get("people") %}
+            <div class="map-shell">
+              <div class="map-caption">
+                <span>
+                  Coordinate view for the latest geolocation timeline.
+                </span>
+                <span>
+                  Bounds:
+                  lat {{ "%.4f"|format(geo_map.get("bounds", {}).get("min_lat", 0)) }} to
+                  {{ "%.4f"|format(geo_map.get("bounds", {}).get("max_lat", 0)) }},
+                  lon {{ "%.4f"|format(geo_map.get("bounds", {}).get("min_lon", 0)) }} to
+                  {{ "%.4f"|format(geo_map.get("bounds", {}).get("max_lon", 0)) }}
+                </span>
+              </div>
+              <svg viewBox="0 0 {{ geo_map.get('width', 960) }} {{ geo_map.get('height', 420) }}" role="img" aria-label="Geolocation route map">
+                <rect x="0" y="0" width="{{ geo_map.get('width', 960) }}" height="{{ geo_map.get('height', 420) }}" fill="rgba(255,255,255,0.52)"></rect>
+                {% for person in geo_map.get("people", []) %}
+                  <polyline
+                    points="{{ person.get('polyline', '') }}"
+                    fill="none"
+                    stroke="{{ person.get('color', '#0f766e') }}"
+                    stroke-width="4"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    opacity="0.75"
+                  ></polyline>
+                  {% for point in person.get("points", [])[:-1] %}
+                    <circle
+                      cx="{{ point.get('x') }}"
+                      cy="{{ point.get('y') }}"
+                      r="4"
+                      fill="{{ person.get('color', '#0f766e') }}"
+                      opacity="0.5"
+                    ></circle>
+                  {% endfor %}
+                  {% set latest = person.get("latest", {}) %}
+                  <circle
+                    cx="{{ latest.get('x', 0) }}"
+                    cy="{{ latest.get('y', 0) }}"
+                    r="8"
+                    fill="{{ person.get('color', '#0f766e') }}"
+                    stroke="white"
+                    stroke-width="3"
+                  ></circle>
+                  <text
+                    x="{{ latest.get('x', 0) + 12 }}"
+                    y="{{ latest.get('y', 0) - 12 }}"
+                    font-size="14"
+                    font-weight="700"
+                    fill="#1d2b2f"
+                  >{{ person.get("name") }}</text>
+                {% endfor %}
+              </svg>
+            </div>
+          {% else %}
+            <p>No geolocation points are available yet. Run a scan with runtime analysis enabled and ensure Home Assistant exposes person or GPS tracker entities.</p>
+          {% endif %}
+        </article>
+
+        <aside class="card">
+          <h2>People Timeline</h2>
+          <div class="person-list">
+            {% for person in geolocation_report.get("people", []) %}
+              <article class="person-card">
+                <h3>{{ person.get("name") }}</h3>
+                <p>
+                  <span class="pill">
+                    <span class="legend-dot" style="background: {{ person.get('color', '#0f766e') }}"></span>
+                    Current: {{ person.get("current_state", "unknown") }}
+                  </span>
+                  {% if person.get("current_when") %}
+                    <span class="pill">Last update: {{ person.get("current_when") }}</span>
+                  {% endif %}
+                </p>
+                <p>
+                  Known places:
+                  {{ person.get("visited_places", [])|join(", ") or "none" }}
+                </p>
+                {% if person.get("openstreetmap_url") %}
+                  <p><a class="link" href="{{ person.get('openstreetmap_url') }}" target="_blank" rel="noreferrer">Open latest position in OpenStreetMap</a></p>
+                {% endif %}
+                <p class="muted">
+                  Recent stays:
+                  {% for stay in person.get("stays", [])[-3:] %}
+                    <span class="pill">{{ stay.get("place", "unknown") }}{% if stay.get("duration_minutes") is not none %} • {{ stay.get("duration_minutes") }} min{% endif %}</span>
+                  {% endfor %}
+                </p>
+              </article>
+            {% endfor %}
+            {% if not geolocation_report.get("people") %}
+              <p class="muted">No people timeline is available for this scan.</p>
+            {% endif %}
+          </div>
+        </aside>
       </section>
     </main>
 

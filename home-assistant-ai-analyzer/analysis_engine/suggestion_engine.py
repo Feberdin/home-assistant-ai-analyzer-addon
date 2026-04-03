@@ -23,6 +23,7 @@ def build_suggestions(
     unused_entities: dict,
     template_performance: dict,
     integration_usage: dict,
+    geolocation_history: dict,
     runtime_warnings: list[str],
     ai_proposals: dict,
 ) -> tuple[list[dict], str]:
@@ -79,6 +80,18 @@ def build_suggestions(
             }
         )
 
+    geo_summary = geolocation_history.get("summary", {})
+    if geo_summary.get("enabled") and geo_summary.get("people_tracked", 0) == 0:
+        suggestions.append(
+            {
+                "priority": 25,
+                "category": "geolocation",
+                "title": "No person or GPS tracker entities were available for geolocation analysis",
+                "reason": "The add-on could not build a people timeline from the current runtime state.",
+                "action": "Create Home Assistant person entities or ensure GPS-capable device trackers expose latitude and longitude.",
+            }
+        )
+
     for warning in runtime_warnings:
         suggestions.append(
             {
@@ -101,6 +114,8 @@ def build_suggestions(
         f"- Templates scanned: `{parser_summary.get('templates', 0)}`",
         f"- Missing referenced entities: `{unused_entities.get('summary', {}).get('missing_referenced_entities', 0)}`",
         f"- Expensive templates: `{template_performance.get('summary', {}).get('expensive_templates', 0)}`",
+        f"- People tracked: `{geo_summary.get('people_tracked', 0)}`",
+        f"- Geolocation timeline points: `{geo_summary.get('timeline_points', 0)}`",
         "",
         "## Top Suggestions",
     ]
@@ -122,8 +137,21 @@ def build_suggestions(
             [
                 "No high-priority suggestions were generated in this run.",
                 "",
-            ]
-        )
+                ]
+            )
+
+    if geolocation_history.get("people"):
+        markdown_lines.append("## Geolocation Summary")
+        for person in geolocation_history["people"][:10]:
+            latest_place = person.get("current_state", "unknown")
+            markdown_lines.extend(
+                [
+                    f"### {person['name']}",
+                    f"- Current place: `{latest_place}`",
+                    f"- Known places: {', '.join(person.get('visited_places', [])[:8]) or 'none'}",
+                    "",
+                ]
+            )
 
     if ai_proposals.get("proposals"):
         markdown_lines.append("## AI Proposal Summary")

@@ -6,6 +6,7 @@ Analyze your Home Assistant installation and generate structured findings for:
 - entities and references
 - templates and performance risks
 - integrations and runtime observations
+- person geolocation history and movement patterns
 - improvement suggestions and optional AI proposals
 
-The add-on provides a small ingress dashboard and writes machine-readable reports to `/data/analysis`.
+The add-on provides a small ingress dashboard, a local people map view, and machine-readable reports in `/data/analysis`.

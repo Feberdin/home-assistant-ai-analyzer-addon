@@ -30,6 +30,7 @@ def write_reports(settings: AppSettings, artifacts: ScanArtifacts) -> dict:
     write_json(analysis_dir / "unused_entities.json", artifacts.unused_entities)
     write_json(analysis_dir / "template_performance.json", artifacts.template_performance)
     write_json(analysis_dir / "integration_usage.json", artifacts.integration_usage)
+    write_json(analysis_dir / "geolocation_history.json", artifacts.geolocation_history)
     write_json(analysis_dir / "automation_graph.json", artifacts.automation_graph)
     write_text(analysis_dir / "suggestions.md", artifacts.suggestions_markdown)
     write_json(analysis_dir / "run_summary.json", artifacts.run_summary)
@@ -45,6 +46,7 @@ def write_reports(settings: AppSettings, artifacts: ScanArtifacts) -> dict:
                 "unused_entities.json",
                 "template_performance.json",
                 "integration_usage.json",
+                "geolocation_history.json",
                 "automation_graph.json",
                 "suggestions.md",
                 "run_summary.json",

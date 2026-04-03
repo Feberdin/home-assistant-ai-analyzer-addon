@@ -32,6 +32,7 @@ def maybe_generate_ai_proposals(
     unused_entities: dict,
     template_performance: dict,
     integration_usage: dict,
+    geolocation_history: dict,
 ) -> dict:
     """Generate optional AI proposals when the operator enabled the feature."""
 
@@ -49,6 +50,7 @@ def maybe_generate_ai_proposals(
         unused_entities,
         template_performance,
         integration_usage,
+        geolocation_history,
     )
 
     try:
@@ -91,10 +93,11 @@ def _build_prompt_payload(
     unused_entities: dict,
     template_performance: dict,
     integration_usage: dict,
+    geolocation_history: dict,
 ) -> dict:
     """Build a bounded and redacted payload for an OpenAI-compatible endpoint."""
 
-    return {
+    payload = {
         "goal": "Suggest safe Home Assistant automation improvements as draft proposals.",
         "constraints": [
             "Do not invent entities or services.",
@@ -112,6 +115,14 @@ def _build_prompt_payload(
         ][: settings.llm_max_findings],
         "integration_hints": integration_usage.get("possible_stale_integrations", [])[: settings.llm_max_findings],
     }
+
+    if settings.enable_ai_geolocation_context:
+        payload["geolocation_summary"] = geolocation_history.get("ai_summary", [])[: settings.llm_max_findings]
+        payload["constraints"].append(
+            "Use geolocation context only to explain human routines and timing patterns; do not expose raw coordinates in your answer."
+        )
+
+    return payload
 
 
 def _parse_json_proposals(content: str) -> list[dict]:

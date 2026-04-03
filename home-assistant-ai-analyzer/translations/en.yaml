@@ -24,6 +24,9 @@ configuration:
   enable_runtime_analysis:
     name: Enable runtime analysis
     description: Query Home Assistant runtime APIs through the Supervisor proxy.
+  enable_geolocation_analysis:
+    name: Enable geolocation analysis
+    description: Build a people location timeline and local map from person entities or GPS-capable trackers.
   enable_recorder_db:
     name: Enable recorder database
     description: Allow optional recorder database inspection when the database file is locally available.
@@ -33,6 +36,9 @@ configuration:
   enable_ai:
     name: Enable AI suggestions
     description: Allow optional outbound requests to a configured LLM provider.
+  enable_ai_geolocation_context:
+    name: Share geolocation with AI
+    description: Include summarized people movement history in AI prompts only when explicitly desired.
   llm_base_url:
     name: LLM base URL
     description: OpenAI-compatible chat completion endpoint URL.
@@ -48,6 +54,12 @@ configuration:
   max_history_entities:
     name: Max history entities
     description: Upper bound for future and current targeted runtime history analysis.
+  geolocation_entity_limit:
+    name: Geolocation entity limit
+    description: Maximum number of people or GPS trackers tracked in one scan.
+  geolocation_point_limit:
+    name: Geolocation point limit
+    description: Maximum number of timeline points kept per tracked person for the local map view.
   exclude_paths:
     name: Excluded paths
     description: Paths below the mounted config directory that should be skipped during scanning.
