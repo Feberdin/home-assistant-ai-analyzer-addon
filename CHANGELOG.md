@@ -2,6 +2,12 @@
 
 # Changelog
 
+## 0.2.1 - 2026-04-03
+
+- Fixed Home Assistant app image builds by installing Python dependencies inside a dedicated virtual environment
+- Removed deprecated app architecture values and kept supported `aarch64` and `amd64`
+- Added a `.dockerignore` to reduce noisy local build context
+
 ## 0.2.0 - 2026-04-03
 
 - Added a real Home Assistant app/add-on repository manifest with [repository.yaml](./repository.yaml)

@@ -3,7 +3,7 @@
 # Invariants: Keep slug unique, ingress port aligned with the web server, and paths read-only where possible.
 # Debugging: If installation or startup fails, validate this file first in Home Assistant and the add-on logs.
 name: "Home Assistant AI Analyzer"
-version: "0.2.0"
+version: "0.2.1"
 slug: "home_assistant_ai_analyzer"
 description: >-
   Analyze Home Assistant configuration, automations, templates, entities,
@@ -12,9 +12,6 @@ url: "https://github.com/Feberdin/home-assistant-ai-analyzer-addon"
 arch:
   - aarch64
   - amd64
-  - armhf
-  - armv7
-  - i386
 startup: application
 boot: auto
 init: false

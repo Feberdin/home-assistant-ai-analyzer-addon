@@ -1,0 +1,13 @@
+# Purpose: Keep the Docker build context small and exclude local development artifacts.
+# Input/Output: Read by Docker during image builds; excludes matching files from the build context.
+# Invariants: Do not exclude files required for runtime or packaging.
+# Debugging: If a build suddenly misses files, review this list first.
+.git
+.github
+.venv
+__pycache__
+*.pyc
+.pytest_cache
+*.egg-info
+dist
+build

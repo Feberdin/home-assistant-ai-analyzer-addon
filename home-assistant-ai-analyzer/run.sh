@@ -17,4 +17,4 @@ bashio::log.info "Scan mode: $(bashio::config 'scan_mode')"
 bashio::log.info "Runtime analysis: $(bashio::config 'enable_runtime_analysis')"
 bashio::log.info "AI enabled: $(bashio::config 'enable_ai')"
 
-exec python3 -m analysis_engine
+exec python -m analysis_engine
