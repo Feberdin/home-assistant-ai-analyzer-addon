@@ -2,7 +2,7 @@
 # Input/Output: Input is the add-on source tree; output is the runnable container image.
 # Invariants: The working directory must match the copied package layout and /run.sh must stay executable.
 # Debugging: If the add-on builds but will not start, verify the pip install step and the module entrypoint first.
-ARG BUILD_FROM=ghcr.io/home-assistant/base:latest
+ARG BUILD_FROM=ghcr.io/home-assistant/base:stable
 FROM ${BUILD_FROM}
 
 ARG BUILD_VERSION
@@ -22,7 +22,10 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN \
   apk add --no-cache \
     python3 \
-    py3-pip
+    py3-pip \
+    curl
+
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 WORKDIR /opt/home-assistant-ai-analyzer
 
@@ -36,6 +39,12 @@ RUN \
   "${VIRTUAL_ENV}/bin/pip" install --no-cache-dir .
 
 COPY run.sh /run.sh
-RUN chmod a+x /run.sh
+RUN chmod +x /run.sh \
+  && chown -R appuser:appgroup /opt/home-assistant-ai-analyzer /run.sh
+
+USER appuser
+
+HEALTHCHECK --interval=30s --timeout=5s --retries=5 \
+  CMD ["curl", "--fail", "http://127.0.0.1:8099/api/health"]
 
 CMD ["/run.sh"]
